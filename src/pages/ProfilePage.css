@@ -1,0 +1,459 @@
+.profile-page {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f6f7fb;
+}
+
+.profile-page-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-main {
+  padding: 34px 36px 40px;
+}
+
+/* AKTİF GÖNÜLLÜ */
+
+.profile-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 22px 4px;
+  color: #666;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.profile-status-dot {
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background-color: #18e34f;
+  border: 1px solid #0bac39;
+  flex-shrink: 0;
+}
+
+/* ANA YAPI */
+
+.profile-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(290px, 0.9fr)
+    minmax(360px, 1.15fr)
+    minmax(310px, 0.9fr);
+  gap: 36px;
+  align-items: start;
+}
+
+/* =========================
+   SOL TARAF
+========================= */
+
+.profile-left-column {
+  min-width: 0;
+}
+
+.profile-section-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 20px;
+  max-width: 320px;
+  margin: 42px auto 44px;
+}
+
+.profile-section-button {
+  min-height: 88px;
+  padding: 14px;
+  border: 1px solid #9d9d9d;
+  border-radius: 19px;
+  background-color: #fff;
+  color: #686868;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.profile-section-button:hover {
+  color: #00a98f;
+  border-color: #00b894;
+  transform: translateY(-2px);
+  box-shadow: 0 7px 16px rgba(0, 184, 148, 0.12);
+}
+
+.profile-last-event {
+  margin-top: 18px;
+}
+
+.profile-last-event h3,
+.profile-interests h3 {
+  margin: 0 0 9px;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-last-event-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid #dedede;
+  border-radius: 10px;
+  background-color: #fff;
+}
+
+.profile-last-event-box span {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background-color: #d8ffa1;
+  color: #4c6800;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.profile-last-event-box p {
+  margin: 0;
+  color: #444;
+  font-size: 11px;
+}
+
+.profile-interests {
+  margin-top: 20px;
+}
+
+.profile-interest-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 9px;
+}
+
+.profile-interest-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #555;
+  font-size: 11px;
+}
+
+.profile-interest-tag span {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background-color: #c7ffa0;
+}
+
+/* =========================
+   ORTA TARAF
+========================= */
+
+.profile-center-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0;
+}
+
+.profile-center-column h1 {
+  margin: 0 0 10px;
+  color: #676767;
+  font-size: clamp(42px, 4vw, 54px);
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+}
+
+.profile-location {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.profile-location span {
+  min-width: 84px;
+  padding: 6px 15px;
+  border: 1px solid #999;
+  border-radius: 17px;
+  color: #666;
+  background-color: #fff;
+  font-size: 11px;
+  text-align: center;
+}
+
+.profile-location p {
+  margin: 0;
+  color: #777;
+  font-size: 12px;
+}
+
+.profile-photo-area {
+  width: min(100%, 335px);
+  height: 400px;
+  overflow: hidden;
+  border: 1px solid #999;
+  border-radius: 42px;
+  background-color: #fff;
+}
+
+.profile-photo-area img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 13px;
+}
+
+.profile-id {
+  margin-top: 18px;
+  color: #686868;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.profile-birth-title {
+  margin: 7px 0 7px;
+  color: #555;
+  font-size: 11px;
+}
+
+.profile-birth-value {
+  width: min(100%, 255px);
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #777;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* =========================
+   SAĞ TARAF
+========================= */
+
+.profile-right-column {
+  min-width: 0;
+}
+
+.profile-score-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.profile-score-card {
+  min-height: 195px;
+  padding: 15px;
+  border: 1px solid #e1e1e1;
+  border-radius: 14px;
+  background-color: #fff;
+}
+
+.profile-score-card h3 {
+  min-height: 31px;
+  margin: 0;
+  color: #444;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.profile-score-circle {
+  width: 100px;
+  height: 100px;
+  margin: 8px auto 11px;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-score-circle-volunteer {
+  background: conic-gradient(
+    #00b894 var(--score),
+    #edf1f4 0deg
+  );
+}
+
+.profile-score-circle-participation {
+  background: conic-gradient(
+    #049bb8 var(--score),
+    #edf1f4 0deg
+  );
+}
+
+.profile-score-circle > div {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-score-circle strong {
+  color: #333;
+  font-size: 21px;
+}
+
+.profile-score-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #777;
+  font-size: 8px;
+}
+
+.profile-score-footer span {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background-color: #00b894;
+}
+
+.profile-score-footer strong {
+  margin-left: auto;
+  font-size: 8px;
+}
+
+.profile-small-card {
+  width: calc(50% - 7px);
+  min-width: 150px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #e1e1e1;
+  border-radius: 14px;
+  background-color: #fff;
+}
+
+.profile-small-card h3 {
+  margin: 0 0 9px;
+  color: #444;
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.profile-small-card strong {
+  display: block;
+  color: #555;
+  font-size: 18px;
+  text-align: center;
+}
+
+.profile-small-card span {
+  display: block;
+  margin-top: 4px;
+  color: #aaa;
+  font-size: 8px;
+  text-align: center;
+}
+
+.profile-manager-note {
+  margin-top: 16px;
+}
+
+.profile-manager-note h3 {
+  margin: 0 0 9px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.profile-note-box {
+  min-height: 95px;
+  padding: 14px;
+  border: 1px solid #e1e1e1;
+  border-radius: 12px;
+  background-color: #fff;
+  color: #777;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.profile-manager-note p {
+  margin: 7px 3px 0;
+  color: #888;
+  font-size: 7px;
+}
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 1150px) {
+  .profile-layout {
+    grid-template-columns: repeat(2, minmax(300px, 1fr));
+  }
+
+  .profile-right-column {
+    grid-column: 1 / -1;
+  }
+
+  .profile-score-row {
+    max-width: 500px;
+    margin: 20px auto 0;
+  }
+
+  .profile-small-card {
+    max-width: 230px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* =========================
+   TELEFON
+========================= */
+
+@media (max-width: 760px) {
+  .profile-main {
+    padding: 22px 18px;
+  }
+
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-section-buttons {
+    margin-top: 12px;
+  }
+
+  .profile-right-column {
+    grid-column: auto;
+  }
+
+  .profile-score-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-score-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-small-card {
+    width: 100%;
+  }
+}
