@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Dashboard from './pages/Dashboard';
 import VolunteerListPage from './pages/VolunteerListPage';
 import ProfilePage from './pages/ProfilePage';
+import FormBuilderFeature from './features/form-builder/FormBuilderFeature';
 
 function App() {
   const getCurrentPage = () => {
@@ -14,6 +15,10 @@ function App() {
 
     if (hash === '#profile') {
       return 'profile';
+    }
+
+    if (hash === '#forms') {
+      return 'forms';
     }
 
     return 'dashboard';
@@ -39,6 +44,10 @@ function App() {
 
   if (currentPage === 'profile') {
     return <ProfilePage />;
+  }
+
+  if (currentPage === 'forms') {
+    return <FormBuilderFeature />;
   }
 
   return <Dashboard />;
