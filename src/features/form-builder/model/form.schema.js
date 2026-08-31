@@ -8,7 +8,9 @@ const FIELD_CATALOG = [
   { type: "long_text", label: "A\xE7\u0131k U\xE7lu Soru", shortLabel: "\xB6" }
 ];
 function createId(prefix) {
-  return `${prefix}_${crypto.randomUUID()}`;
+  const randomId = window.crypto?.randomUUID?.()
+    ?? `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+  return `${prefix}_${randomId}`;
 }
 function createField(type) {
   const catalogItem = FIELD_CATALOG.find((item) => item.type === type);
@@ -45,7 +47,16 @@ function createEmptyForm() {
   };
 }
 function isFormPublishable(schema) {
-  return schema.title.trim().length >= 2 && schema.sections.some((section) => section.fields.length > 0);
+  if (schema.title.trim().length < 2) return false;
+  const fields = schema.sections.flatMap((section) => section.fields);
+  if (fields.length === 0) return false;
+  return fields.every((field) => {
+    if (!field.label.trim()) return false;
+    if (field.type === "multiple_choice") {
+      return field.options?.length > 0 && field.options.every((option) => option.trim().length > 0);
+    }
+    return field.type !== "file" || Boolean(field.fileSettings);
+  });
 }
 export {
   FIELD_CATALOG,

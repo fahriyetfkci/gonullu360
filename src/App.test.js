@@ -1,8 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+jest.mock('./features/form-builder/services/formApi', () => ({
+  getFormDraft: jest.fn().mockResolvedValue(null),
+  getPublishedForm: jest.fn().mockResolvedValue(null),
+  saveFormDraft: jest.fn(),
+  publishFormDraft: jest.fn(),
+  getFormApiErrorMessage: jest.fn(() => 'Form API hatası'),
+}));
+
+test('form yönetimi sayfasını açar', async () => {
+  window.location.hash = '#forms';
+  localStorage.clear();
+
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+
+  expect(await screen.findByRole('heading', { name: 'Form Oluştur' })).toBeInTheDocument();
 });

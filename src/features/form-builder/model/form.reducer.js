@@ -1,6 +1,8 @@
 import { createField, createId } from "./form.schema";
 function formReducer(state, action) {
   switch (action.type) {
+    case "REPLACE_SCHEMA":
+      return action.schema;
     case "SET_TITLE":
       return { ...state, title: action.title };
     case "SET_DESCRIPTION":

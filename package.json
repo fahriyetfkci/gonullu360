@@ -21,6 +21,10 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:build": "npm --prefix backend run build",
+    "backend:test": "npm --prefix backend test",
+    "backend:generate": "npm --prefix backend run db:generate",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

@@ -10,12 +10,20 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { FieldEditor } from "./components/FieldEditor";
 import { FIELD_CATALOG, createEmptyForm, isFormPublishable } from "./model/form.schema";
 import { formReducer } from "./model/form.reducer";
-import { loadDraft, loadPublishedForm, publishForm, saveDraft } from "./services/draftStorage";
+import { loadDraft, saveDraft as cacheDraft } from "./services/draftStorage";
+import {
+  getFormApiErrorMessage,
+  getFormDraft,
+  getPublishedForm,
+  publishFormDraft,
+  saveFormDraft
+} from "./services/formApi";
 const SAVE_LABELS = {
+  syncing: "Sunucuyla eşitleniyor...",
   idle: "Haz\u0131r",
   dirty: "Kaydedilmemi\u015F de\u011Fi\u015Fiklikler",
   saving: "Kaydediliyor...",
@@ -23,6 +31,15 @@ const SAVE_LABELS = {
   published: "Form yay\u0131nland\u0131",
   error: "Kay\u0131t ba\u015Far\u0131s\u0131z"
 };
+
+function cacheDraftSafely(schema, revision) {
+  try {
+    cacheDraft(schema, revision);
+  } catch {
+    // The server remains the source of truth when browser storage is unavailable.
+  }
+}
+
 function PaletteItem({ type, label, shortLabel, onAdd }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `palette:${type}`,
@@ -110,59 +127,111 @@ function FormBuilderPage({ onPreview, onOpenPublished, onBack }) {
   const initialDraft = useMemo(() => loadDraft(), []);
   const initialSchema = useMemo(() => initialDraft?.schema ?? createEmptyForm(), [initialDraft]);
   const [schema, dispatch] = useReducer(formReducer, initialSchema);
-  const revision = useRef(initialDraft?.revision ?? 0);
+  const revision = useRef(0);
   const lastSavedSchema = useRef(JSON.stringify(initialSchema));
-  const [saveState, setSaveState] = useState(initialDraft ? "saved" : "idle");
-  const [published, setPublished] = useState(() => loadPublishedForm());
+  const saveQueue = useRef(Promise.resolve());
+  const autoSaveTimer = useRef(null);
+  const [saveState, setSaveState] = useState("syncing");
+  const [published, setPublished] = useState(null);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [selectedFieldId, setSelectedFieldId] = useState(null);
   const [activeLabel, setActiveLabel] = useState(null);
   const [message, setMessage] = useState(null);
-  const firstRender = useRef(true);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const selectedField = schema.sections.flatMap((section) => section.fields).find((field) => field.id === selectedFieldId);
+
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
+    let active = true;
+    async function hydrateFromServer() {
+      try {
+        const [remoteDraft, remotePublished] = await Promise.all([
+          getFormDraft(),
+          getPublishedForm()
+        ]);
+        if (!active) return;
+        if (remoteDraft?.schema) {
+          dispatch({ type: "REPLACE_SCHEMA", schema: remoteDraft.schema });
+          revision.current = remoteDraft.revision;
+          lastSavedSchema.current = JSON.stringify(remoteDraft.schema);
+        }
+        setPublished(remotePublished);
+        setSaveState(remoteDraft ? "saved" : "idle");
+      } catch (error) {
+        if (!active) return;
+        setSaveState("error");
+        setMessage(getFormApiErrorMessage(error));
+      } finally {
+        if (active) setIsHydrated(true);
+      }
     }
+    void hydrateFromServer();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const enqueueSave = useCallback((nextSchema) => {
+    const task = saveQueue.current.catch(() => undefined).then(async () => {
+      const serializedSchema = JSON.stringify(nextSchema);
+      if (revision.current > 0 && serializedSchema === lastSavedSchema.current) {
+        return { revision: revision.current };
+      }
+
+      setSaveState("saving");
+      try {
+        const saved = await saveFormDraft(nextSchema, revision.current);
+        revision.current = saved.revision;
+        lastSavedSchema.current = serializedSchema;
+        cacheDraftSafely(nextSchema, Math.max(saved.revision - 1, 0));
+        setMessage(null);
+        setSaveState("saved");
+        return saved;
+      } catch (error) {
+        cacheDraftSafely(nextSchema, revision.current);
+        setSaveState("error");
+        setMessage(getFormApiErrorMessage(error));
+        throw error;
+      }
+    });
+    saveQueue.current = task;
+    return task;
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return undefined;
     if (JSON.stringify(schema) === lastSavedSchema.current) return;
     setSaveState("dirty");
-    const timer = window.setTimeout(() => {
-      try {
-        setSaveState("saving");
-        const saved = saveDraft(schema, revision.current);
-        revision.current = saved.revision;
-        lastSavedSchema.current = JSON.stringify(schema);
-        setSaveState("saved");
-      } catch {
-        setSaveState("error");
-      }
+    autoSaveTimer.current = window.setTimeout(() => {
+      autoSaveTimer.current = null;
+      void enqueueSave(schema).catch(() => undefined);
     }, 900);
-    return () => window.clearTimeout(timer);
-  }, [schema]);
+    return () => {
+      if (autoSaveTimer.current) window.clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+    };
+  }, [enqueueSave, isHydrated, schema]);
+
   function saveNow() {
-    setSaveState("saving");
-    const saved = saveDraft(schema, revision.current);
-    revision.current = saved.revision;
-    lastSavedSchema.current = JSON.stringify(schema);
-    setSaveState("saved");
-    return saved.revision;
+    if (autoSaveTimer.current) window.clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = null;
+    return enqueueSave(schema);
   }
-  function handlePublish() {
+
+  async function handlePublish() {
     setMessage(null);
     if (!isFormPublishable(schema)) {
       setMessage("Yay\u0131nlamak i\xE7in form ad\u0131 ve en az bir form alan\u0131 ekleyin.");
       return;
     }
     try {
-      saveNow();
-      const result = publishForm(schema);
+      const saved = await saveNow();
+      const result = await publishFormDraft(schema.id, saved.revision);
       setPublished(result);
       setSaveState("published");
       setMessage(`S\xFCr\xFCm ${result.version} ba\u015Far\u0131yla yay\u0131nland\u0131.`);
-    } catch {
+    } catch (error) {
       setSaveState("error");
-      setMessage("Form yay\u0131nlan\u0131rken bir hata olu\u015Ftu.");
+      setMessage(getFormApiErrorMessage(error));
     }
   }
   function destinationFromEvent(event) {
@@ -263,12 +332,16 @@ function FormBuilderPage({ onPreview, onOpenPublished, onBack }) {
           {message && <p className={`panel-message ${saveState === "error" ? "is-error" : ""}`}>{message}</p>}
 
           <nav className="panel-actions">
-            <button type="button" onClick={handlePublish}>
+            <button type="button" onClick={handlePublish} disabled={!isHydrated || saveState === "saving"}>
               <span>✓</span><div><strong>Kaydet ve Yayınla</strong><small>Yeni bir sabit sürüm oluştur</small></div><b>›</b>
             </button>
-            <button type="button" onClick={() => {
-    saveNow();
-    onPreview(schema);
+            <button type="button" disabled={!isHydrated || saveState === "saving"} onClick={async () => {
+    try {
+      await saveNow();
+      onPreview(schema);
+    } catch {
+      // saveNow already exposes the server error in the action panel.
+    }
   }}>
               <span>◉</span><div><strong>Form Önizleme</strong><small>Sabit kullanıcı görünümünü aç</small></div><b>›</b>
             </button>
