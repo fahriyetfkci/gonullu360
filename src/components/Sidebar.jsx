@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import logo from "../assets/gonullu360-logo.png";
 import logoIcon from "../assets/logo-icon.png";
+import { useAuth } from "../features/auth/AuthProvider";
 
 const menuItems = [
   {
@@ -57,6 +58,7 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
+  const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
 
   const getCurrentPage = () => {
@@ -104,7 +106,7 @@ export default function Sidebar() {
     }
 
     if (item.page === "logout") {
-      console.log("Çıkış işlemi daha sonra bağlanacak.");
+      void logout();
       return;
     }
 

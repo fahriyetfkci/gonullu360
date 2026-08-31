@@ -2,6 +2,16 @@ import request from "supertest";
 import { createApp } from "../../../app";
 import * as formService from "../form.service";
 
+jest.mock("../../../middleware/authenticate", () => ({
+  authenticate: (req: { user?: unknown }, _res: unknown, next: () => void): void => {
+    req.user = { id: "admin-1", orgId: "org-1", email: "admin@example.com", role: "ADMIN" };
+    next();
+  },
+}));
+jest.mock("../../../middleware/authorize", () => ({
+  authorize: (): ((_req: unknown, _res: unknown, next: () => void) => void) =>
+    (_req: unknown, _res: unknown, next: () => void): void => next(),
+}));
 jest.mock("../form.service");
 
 const mockedFormService = jest.mocked(formService);
@@ -30,16 +40,15 @@ describe("form routes", () => {
       updatedAt: new Date("2026-08-31T00:00:00.000Z"),
     });
 
-    const response = await request(app).get("/api/forms/draft?organizationSlug=ihh");
+    const response = await request(app).get("/api/forms/draft");
 
     expect(response.status).toBe(200);
     expect(response.body.data.revision).toBe(3);
-    expect(mockedFormService.getDraft).toHaveBeenCalledWith({ organizationSlug: "ihh" });
+    expect(mockedFormService.getDraft).toHaveBeenCalledWith("org-1", {});
   });
 
   it("validates a draft before saving", async () => {
     const response = await request(app).put("/api/forms/draft").send({
-      organizationSlug: "ihh",
       expectedRevision: 0,
       schema: { ...schema, sections: [] },
     });
@@ -57,7 +66,6 @@ describe("form routes", () => {
     });
 
     const response = await request(app).post("/api/forms/publish").send({
-      organizationSlug: "ihh",
       clientFormId: "form-1",
       expectedRevision: 3,
     });

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useAuth } from '../features/auth/AuthProvider';
 
 export default function Navbar({ user, notifications }) {
+  const { user: authenticatedUser, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -10,7 +12,11 @@ export default function Navbar({ user, notifications }) {
     (notification) => notification.read === 0
   ).length;
 
-  const displayedUser = user || {
+  const displayedUser = authenticatedUser ? {
+    name: authenticatedUser.email?.split('@')[0] || 'Yönetici',
+    role: authenticatedUser.role === 'ADMIN' ? 'Yönetici' : 'Gönüllü',
+    photo: null,
+  } : user || {
     name: 'Enes ACAR',
     role: 'Yönetici',
     photo: null,
@@ -235,7 +241,9 @@ export default function Navbar({ user, notifications }) {
               key={item.label}
               type="button"
               onClick={() => {
-                console.log(item.label);
+                if (item.label === 'Çıkış Yap') {
+                  void logout();
+                }
                 setShowProfileMenu(false);
               }}
               style={{

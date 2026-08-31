@@ -1,4 +1,9 @@
 import axios from "axios";
+import {
+  getAccessToken,
+  notifySessionExpired,
+  refreshSession,
+} from "../../auth/services/authApi";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
 const ORGANIZATION_SLUG = process.env.REACT_APP_ORGANIZATION_SLUG || "ihh";
@@ -9,20 +14,48 @@ const formClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+formClient.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+formClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status !== 401 || !originalRequest || originalRequest._retriedAfterRefresh) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retriedAfterRefresh = true;
+
+    try {
+      const token = await refreshSession();
+      if (!token) throw error;
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = `Bearer ${token}`;
+      return formClient(originalRequest);
+    } catch (refreshError) {
+      notifySessionExpired();
+      return Promise.reject(refreshError);
+    }
+  },
+);
+
 function unwrap(response) {
   return response.data?.data ?? null;
 }
 
 export async function getFormDraft(clientFormId) {
   const response = await formClient.get("/draft", {
-    params: { organizationSlug: ORGANIZATION_SLUG, ...(clientFormId ? { clientFormId } : {}) },
+    params: clientFormId ? { clientFormId } : {},
   });
   return unwrap(response);
 }
 
 export async function saveFormDraft(schema, expectedRevision) {
   const response = await formClient.put("/draft", {
-    organizationSlug: ORGANIZATION_SLUG,
     expectedRevision,
     schema,
   });
@@ -31,7 +64,6 @@ export async function saveFormDraft(schema, expectedRevision) {
 
 export async function publishFormDraft(clientFormId, expectedRevision) {
   const response = await formClient.post("/publish", {
-    organizationSlug: ORGANIZATION_SLUG,
     clientFormId,
     expectedRevision,
   });

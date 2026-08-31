@@ -24,7 +24,12 @@
     "backend:dev": "npm --prefix backend run dev",
     "backend:build": "npm --prefix backend run build",
     "backend:test": "npm --prefix backend test",
+    "backend:lint": "npm --prefix backend run lint",
     "backend:generate": "npm --prefix backend run db:generate",
+    "backend:migrate": "npm --prefix backend run db:migrate",
+    "backend:migrate:prod": "npm --prefix backend run db:migrate:prod",
+    "backend:seed": "npm --prefix backend run db:seed",
+    "frontend:lint": "eslint src --ext .js,.jsx",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

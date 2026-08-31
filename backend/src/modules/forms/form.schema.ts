@@ -68,6 +68,12 @@ const organizationSlugSchema = z.string().min(2).max(64).regex(/^[a-z0-9-]+$/);
 
 export const draftQuerySchema = z.object({
   query: z.object({
+    clientFormId: idSchema.optional(),
+  }),
+});
+
+export const publishedQuerySchema = z.object({
+  query: z.object({
     organizationSlug: organizationSlugSchema,
     clientFormId: idSchema.optional(),
   }),
@@ -75,7 +81,6 @@ export const draftQuerySchema = z.object({
 
 export const saveDraftRequestSchema = z.object({
   body: z.object({
-    organizationSlug: organizationSlugSchema,
     expectedRevision: z.number().int().min(0),
     schema: formDefinitionSchema,
   }),
@@ -83,7 +88,6 @@ export const saveDraftRequestSchema = z.object({
 
 export const publishRequestSchema = z.object({
   body: z.object({
-    organizationSlug: organizationSlugSchema,
     clientFormId: idSchema,
     expectedRevision: z.number().int().positive(),
   }),
@@ -104,5 +108,6 @@ export function isFormDefinitionPublishable(form: FormDefinition): boolean {
 
 export type FormDefinition = z.infer<typeof formDefinitionSchema>;
 export type DraftQuery = z.infer<typeof draftQuerySchema>["query"];
+export type PublishedQuery = z.infer<typeof publishedQuerySchema>["query"];
 export type SaveDraftBody = z.infer<typeof saveDraftRequestSchema>["body"];
 export type PublishBody = z.infer<typeof publishRequestSchema>["body"];

@@ -17,13 +17,37 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message = "Kayıt başka bir kullanıcı tarafından güncellendi") {
-    super(409, message, "REVISION_CONFLICT");
+  constructor(message = "Conflict", code = "CONFLICT") {
+    super(409, message, code);
   }
 }
 
 export class ValidationError extends AppError {
   constructor(message = "Form yayınlanmaya hazır değil") {
     super(422, message, "VALIDATION_ERROR");
+  }
+}
+
+export class UnauthorizedError extends AppError {
+  constructor(message = "Unauthorized") {
+    super(401, message, "UNAUTHORIZED");
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message = "Forbidden") {
+    super(403, message, "FORBIDDEN");
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(message = "Too many requests") {
+    super(429, message, "TOO_MANY_REQUESTS");
+  }
+}
+
+export class InternalError extends AppError {
+  constructor(message = "Internal server error") {
+    super(500, message, "INTERNAL_ERROR");
   }
 }

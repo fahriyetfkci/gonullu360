@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../database/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "../../shared/errors";
-import { DraftQuery, FormDefinition, PublishBody, SaveDraftBody, isFormDefinitionPublishable } from "./form.schema";
+import { DraftQuery, FormDefinition, PublishBody, PublishedQuery, SaveDraftBody, isFormDefinitionPublishable } from "./form.schema";
 
 interface DraftResult {
   formId: string;
@@ -33,14 +33,13 @@ function asFormDefinition(value: Prisma.JsonValue): FormDefinition {
   return value as unknown as FormDefinition;
 }
 
-export async function getDraft(query: DraftQuery): Promise<DraftResult | null> {
-  const organization = await getOrganization(query.organizationSlug);
+export async function getDraft(orgId: string, query: DraftQuery): Promise<DraftResult | null> {
   const form = query.clientFormId
     ? await prisma.form.findUnique({
-        where: { orgId_clientFormId: { orgId: organization.id, clientFormId: query.clientFormId } },
+        where: { orgId_clientFormId: { orgId, clientFormId: query.clientFormId } },
       })
     : await prisma.form.findFirst({
-        where: { orgId: organization.id },
+        where: { orgId },
         orderBy: { updatedAt: "desc" },
       });
 
@@ -48,14 +47,13 @@ export async function getDraft(query: DraftQuery): Promise<DraftResult | null> {
   return { formId: form.id, schema: asFormDefinition(form.draftSchema), revision: form.draftRevision, updatedAt: form.updatedAt };
 }
 
-export async function saveDraft(body: SaveDraftBody): Promise<DraftResult> {
-  const organization = await getOrganization(body.organizationSlug);
-  const key = { orgId: organization.id, clientFormId: body.schema.id };
+export async function saveDraft(orgId: string, userId: string, body: SaveDraftBody): Promise<DraftResult> {
+  const key = { orgId, clientFormId: body.schema.id };
   const existing = await prisma.form.findUnique({ where: { orgId_clientFormId: key } });
   const jsonSchema = body.schema as unknown as Prisma.InputJsonValue;
 
   if (!existing) {
-    if (body.expectedRevision !== 0) throw new ConflictError();
+    if (body.expectedRevision !== 0) throw new ConflictError("Taslak başka bir oturumda güncellendi", "REVISION_CONFLICT");
     const created = await prisma.form.create({
       data: {
         ...key,
@@ -63,12 +61,13 @@ export async function saveDraft(body: SaveDraftBody): Promise<DraftResult> {
         description: body.schema.description || null,
         draftSchema: jsonSchema,
         draftRevision: 1,
+        createdById: userId,
       },
     });
     return { formId: created.id, schema: body.schema, revision: created.draftRevision, updatedAt: created.updatedAt };
   }
 
-  if (existing.draftRevision !== body.expectedRevision) throw new ConflictError();
+  if (existing.draftRevision !== body.expectedRevision) throw new ConflictError("Taslak başka bir oturumda güncellendi", "REVISION_CONFLICT");
   const updated = await prisma.form.updateMany({
     where: { id: existing.id, draftRevision: body.expectedRevision },
     data: {
@@ -78,21 +77,19 @@ export async function saveDraft(body: SaveDraftBody): Promise<DraftResult> {
       draftRevision: { increment: 1 },
     },
   });
-  if (updated.count !== 1) throw new ConflictError();
+  if (updated.count !== 1) throw new ConflictError("Taslak başka bir oturumda güncellendi", "REVISION_CONFLICT");
 
   const saved = await prisma.form.findUniqueOrThrow({ where: { id: existing.id } });
   return { formId: saved.id, schema: asFormDefinition(saved.draftSchema), revision: saved.draftRevision, updatedAt: saved.updatedAt };
 }
 
-export async function publish(body: PublishBody): Promise<PublishedResult> {
-  const organization = await getOrganization(body.organizationSlug);
-
+export async function publish(orgId: string, userId: string, body: PublishBody): Promise<PublishedResult> {
   return prisma.$transaction(async (transaction) => {
     const form = await transaction.form.findUnique({
-      where: { orgId_clientFormId: { orgId: organization.id, clientFormId: body.clientFormId } },
+      where: { orgId_clientFormId: { orgId, clientFormId: body.clientFormId } },
     });
     if (!form) throw new NotFoundError("Yayınlanacak form bulunamadı");
-    if (form.draftRevision !== body.expectedRevision) throw new ConflictError();
+    if (form.draftRevision !== body.expectedRevision) throw new ConflictError("Taslak başka bir oturumda güncellendi", "REVISION_CONFLICT");
 
     const draftSchema = asFormDefinition(form.draftSchema);
     if (!isFormDefinitionPublishable(draftSchema)) {
@@ -105,19 +102,20 @@ export async function publish(body: PublishBody): Promise<PublishedResult> {
         formId: form.id,
         version,
         schema: form.draftSchema as Prisma.InputJsonValue,
+        publishedById: userId,
       },
     });
     const updated = await transaction.form.updateMany({
       where: { id: form.id, draftRevision: body.expectedRevision, publishedVersion: form.publishedVersion },
       data: { publishedVersion: version, publishedAt: versionRecord.publishedAt },
     });
-    if (updated.count !== 1) throw new ConflictError("Form yayınlanırken başka bir işlem tarafından güncellendi");
+    if (updated.count !== 1) throw new ConflictError("Form yayınlanırken başka bir işlem tarafından güncellendi", "REVISION_CONFLICT");
 
     return { formId: form.id, schema: draftSchema, version, publishedAt: versionRecord.publishedAt };
   });
 }
 
-export async function getPublished(query: DraftQuery): Promise<PublishedResult | null> {
+export async function getPublished(query: PublishedQuery): Promise<PublishedResult | null> {
   const organization = await getOrganization(query.organizationSlug);
   const form = query.clientFormId
     ? await prisma.form.findUnique({
