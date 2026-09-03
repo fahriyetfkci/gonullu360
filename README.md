@@ -140,6 +140,10 @@ E-posta: enes@gonullu360.com
 
 `TEST_MANAGER_PASSWORD` ile `SEED_USER_PASSWORD` geliştirme ve test ortamında aynı olmalıdır.
 
+`.env.example` dosyasında hazır bir parola bulunmaz. Dosyayı `.env` adıyla kopyalayan kişi kendi güçlü başlangıç parolasını `SEED_USER_PASSWORD` alanına yazmalıdır. `npm run seed` çalıştırıldığında `enes@gonullu360.com` hesabının parolası bu değere göre oluşturulur veya güncellenir.
+
+Kullanıcı daha sonra “Parolamı unuttum/Şifreyi yenile” işlemiyle parolasını değiştirirse yeni parola PostgreSQL veritabanında güvenli bir hash olarak saklanır; `.env` dosyasındaki `SEED_USER_PASSWORD` değeri otomatik olarak değişmez. `npm run seed` yeniden çalıştırılırsa yönetici parolası tekrar `.env` içindeki `SEED_USER_PASSWORD` değerine döner. Bu nedenle gerçek verilerin bulunduğu production ortamında seed komutu kontrolsüz şekilde yeniden çalıştırılmamalıdır.
+
 ## Kontrol komutları
 
 Backend:
