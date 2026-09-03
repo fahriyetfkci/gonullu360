@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VOLUNTEER
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  organizationId      String    @map("organization_id")
+  name                String
+  email               String
+  password            String
+  role                Role      @default(VOLUNTEER)
+  isVerified          Boolean   @default(true) @map("is_verified")
+  isActive            Boolean   @default(true) @map("is_active")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  lastLoginAt         DateTime? @map("last_login_at")
+  mfaEnabled          Boolean   @default(false) @map("mfa_enabled")
+  mfaSecret           String?   @map("mfa_secret")
+  backupCodesHash     String?   @map("backup_codes_hash")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  organization          Organization         @relation(fields: [organizationId], references: [id])
+  notifications         Notification[]
+  managerNotesAuthored  VolunteerProfile[]   @relation("ManagerNoteAuthor")
+  formsCreated          Form[]               @relation("FormCreatedBy")
+  formVersionsPublished FormVersion[]        @relation("FormPublishedBy")
+  formSubmissions       FormSubmission[]
+  refreshSessions       RefreshSession[]
+  passwordResetTokens   PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  auditLogs             AuditLog[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@map("users")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users         User[]
+  forms         Form[]
+  auditLogs     AuditLog[]
+  volunteers    Volunteer[]
+  events        Event[]
+  applications  Application[]
+  notifications Notification[]
+
+  @@map("organizations")
+}
+
+model RefreshSession {
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
+  tokenHash         String    @unique @map("token_hash")
+  deviceInfo        String?   @map("device_info")
+  ipAddress         String    @map("ip_address")
+  userAgent         String?   @map("user_agent")
+  expiresAt         DateTime  @map("expires_at")
+  revokedAt         DateTime? @map("revoked_at")
+  replacedByTokenId String?   @map("replaced_by_token_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("refresh_sessions")
+}
+
+model AuditLog {
+  id             Int      @id @default(autoincrement())
+  organizationId String?  @map("organization_id")
+  userId         String?  @map("user_id")
+  action         String
+  ipAddress      String   @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+model Volunteer {
+  id             Int      @id @default(autoincrement())
+  organizationId String   @map("organization_id")
+  name           String
+  city           String
+  gender         String
+  age            Int
+  education      String   @default("Üniversite")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  profile      VolunteerProfile?
+  interests    VolunteerInterest[]
+  educations   VolunteerEducation[]
+  participants EventParticipant[]
+  organization Organization         @relation(fields: [organizationId], references: [id])
+
+  @@index([createdAt])
+  @@index([city])
+  @@index([active, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, city])
+  @@index([organizationId, gender])
+  @@index([organizationId, age])
+  @@index([organizationId, active, createdAt])
+  @@map("volunteers")
+}
+
+model Event {
+  id             Int      @id @default(autoincrement())
+  organizationId String   @map("organization_id")
+  name           String
+  date           DateTime @db.Date
+  target         Int      @default(0)
+  completed      Boolean  @default(false)
+
+  participants EventParticipant[]
+  organization Organization       @relation(fields: [organizationId], references: [id])
+
+  @@index([date])
+  @@index([completed, date])
+  @@index([organizationId, date])
+  @@index([organizationId, completed, date])
+  @@map("events")
+}
+
+model EventParticipant {
+  id          Int @id @default(autoincrement())
+  volunteerId Int @map("volunteer_id")
+  eventId     Int @map("event_id")
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([volunteerId, eventId])
+  @@index([volunteerId])
+  @@index([eventId])
+  @@map("event_participants")
+}
+
+model Notification {
+  id             Int      @id @default(autoincrement())
+  organizationId String   @map("organization_id")
+  userId         String   @map("user_id")
+  message        String
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([userId, read, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("notifications")
+}
+
+model Application {
+  id             Int          @id @default(autoincrement())
+  organizationId String       @map("organization_id")
+  name           String
+  city           String
+  gender         String
+  age            Int
+  education      String       @default("Üniversite")
+  status         String       @default("İşlem Bekliyor")
+  phone          String?
+  email          String?
+  address        String?
+  interests      String?
+  coverLetter    String?      @map("cover_letter")
+  evaluationNote String?      @map("evaluation_note")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([city])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, city])
+  @@map("applications")
+}
+
+model VolunteerProfile {
+  volunteerId          Int       @id @map("volunteer_id")
+  volunteerCode        String?   @unique @map("volunteer_code")
+  birthDate            DateTime? @map("birth_date") @db.Date
+  department           String?
+  phone                String?
+  email                String?
+  address              String?
+  photoUrl             String?   @map("photo_url")
+  managerNote          String?   @map("manager_note")
+  coverLetter          String?   @map("cover_letter")
+  volunteeringTarget   Int       @default(80) @map("volunteering_target")
+  participationTarget  Int       @default(70) @map("participation_target")
+  managerNoteAuthorId  String?   @map("manager_note_author_id")
+  managerNoteUpdatedAt DateTime? @map("manager_note_updated_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  volunteer         Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  managerNoteAuthor User?     @relation("ManagerNoteAuthor", fields: [managerNoteAuthorId], references: [id], onDelete: SetNull)
+
+  @@map("volunteer_profiles")
+}
+
+model VolunteerInterest {
+  volunteerId Int    @map("volunteer_id")
+  interest    String
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@id([volunteerId, interest])
+  @@index([interest])
+  @@map("volunteer_interests")
+}
+
+model VolunteerEducation {
+  id          Int     @id @default(autoincrement())
+  volunteerId Int     @map("volunteer_id")
+  level       String
+  school      String
+  department  String?
+  startYear   Int?    @map("start_year")
+  endYear     Int?    @map("end_year")
+  current     Boolean @default(false)
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@index([volunteerId, current])
+  @@map("volunteer_educations")
+}
+
+model Form {
+  id             Int       @id @default(autoincrement())
+  clientFormId   String    @map("client_form_id")
+  organizationId String    @map("organization_id")
+  title          String
+  description    String?
+  status         String    @default("draft")
+  draftSchema    Json      @map("draft_schema")
+  draftRevision  Int       @default(1) @map("draft_revision")
+  currentVersion Int       @default(0) @map("current_version")
+  createdById    String    @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  publishedAt    DateTime? @map("published_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  createdBy    User             @relation("FormCreatedBy", fields: [createdById], references: [id])
+  versions     FormVersion[]
+  submissions  FormSubmission[]
+
+  @@unique([organizationId, clientFormId])
+  @@index([status, updatedAt])
+  @@index([organizationId, updatedAt])
+  @@index([createdById, updatedAt])
+  @@map("forms")
+}
+
+model FormVersion {
+  id            Int      @id @default(autoincrement())
+  formId        Int      @map("form_id")
+  version       Int
+  schema        Json     @map("schema_json")
+  publishedById String   @map("published_by")
+  publishedAt   DateTime @default(now()) @map("published_at")
+
+  form        Form @relation(fields: [formId], references: [id], onDelete: Cascade)
+  publishedBy User @relation("FormPublishedBy", fields: [publishedById], references: [id])
+
+  @@unique([formId, version])
+  @@index([formId, publishedAt])
+  @@map("form_versions")
+}
+
+model FormSubmission {
+  id          Int      @id @default(autoincrement())
+  formId      Int      @map("form_id")
+  formVersion Int      @map("form_version")
+  answers     Json     @map("answers_json")
+  submittedBy String?  @map("submitted_by")
+  submittedAt DateTime @default(now()) @map("submitted_at")
+
+  form Form  @relation(fields: [formId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [submittedBy], references: [id], onDelete: SetNull)
+  files FormSubmissionFile[]
+
+  @@index([formId, submittedAt])
+  @@index([submittedBy, submittedAt])
+  @@map("form_submissions")
+}
+
+model FormSubmissionFile {
+  id           String   @id @default(cuid())
+  submissionId Int      @map("submission_id")
+  fieldId      String   @map("field_id")
+  originalName String   @map("original_name")
+  storedName   String   @unique @map("stored_name")
+  mimeType     String   @map("mime_type")
+  size         Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("form_submission_files")
+}

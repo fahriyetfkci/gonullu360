@@ -1,0 +1,135 @@
+.profile-note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.profile-manager-note > .profile-note-header {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+}
+
+.profile-note-header h3 {
+  margin: 0;
+  color: #41464b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profile-note-header button,
+.profile-note-actions button {
+  border: 1px solid #d9dfe3;
+  border-radius: 8px;
+  background: #fff;
+  color: #59636b;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-note-header button:hover,
+.profile-note-actions button:not(:disabled):hover {
+  border-color: #00b894;
+  color: #00a98f;
+  background: #f0faf8;
+}
+
+.profile-manager-note > .profile-note-content {
+  box-sizing: border-box;
+  min-height: 105px;
+  padding: 14px 15px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: #fff;
+  color: #657078;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.profile-manager-note > .profile-note-editor {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.profile-note-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #d5dce0;
+  border-radius: 12px;
+  background: #fff;
+  color: #4f5960;
+  line-height: 1.5;
+  font: inherit;
+}
+
+.profile-note-editor textarea:focus {
+  border-color: #00b894;
+  outline: 3px solid rgba(0, 184, 148, .12);
+}
+
+.profile-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.profile-note-actions button.primary {
+  border-color: #00b894;
+  background: #00b894;
+  color: #fff;
+}
+
+.profile-note-actions button.primary:hover {
+  border-color: #009f80;
+  background: #009f80;
+  color: #fff;
+}
+
+.profile-note-actions button.danger {
+  margin-left: auto;
+  border-color: #e57373;
+  color: #d32f2f;
+}
+
+.profile-note-actions button.danger:hover {
+  border-color: #d32f2f;
+  background: #fff5f5;
+  color: #c62828;
+}
+
+.profile-note-actions button:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.profile-note-error {
+  margin: 8px 0 0;
+  color: #d32f2f;
+  font-size: 12px;
+}
+
+.profile-manager-note > .profile-note-meta {
+  min-height: 0;
+  margin-top: 8px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #8a9199;
+  font-size: 10px;
+  line-height: 1.4;
+}
