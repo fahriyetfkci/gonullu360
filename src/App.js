@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import VolunteerListPage from './pages/VolunteerListPage';
 import ProfilePage from './pages/ProfilePage';
 import FormBuilderFeature from './features/form-builder/FormBuilderFeature';
+import EventManagementFeature from './features/event-management/EventManagementFeature';
 import LoginPage from './features/auth/LoginPage';
 import { useAuth } from './features/auth/AuthProvider';
 
@@ -22,6 +23,10 @@ function App() {
 
     if (hash === '#forms') {
       return 'forms';
+    }
+
+    if (hash === '#events') {
+      return 'events';
     }
 
     return 'dashboard';
@@ -59,6 +64,10 @@ function App() {
 
   if (currentPage === 'forms') {
     return <FormBuilderFeature />;
+  }
+
+  if (currentPage === 'events') {
+    return <EventManagementFeature />;
   }
 
   return <Dashboard />;

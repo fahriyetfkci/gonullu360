@@ -29,6 +29,23 @@ async function main(): Promise<void> {
       isActive: true,
     },
   });
+
+  const defaultGroups = [
+    { name: "Genel", color: "#665cf6", memberCount: 150 },
+    { name: "Üniversite", color: "#16a5f7", memberCount: 40 },
+    { name: "Lise", color: "#20c997", memberCount: 16 },
+    { name: "Ortaokul", color: "#f5a623", memberCount: 56 },
+    { name: "Çocuk", color: "#7b8794", memberCount: 124 },
+    { name: "Çalışan Gençlik", color: "#f43f6e", memberCount: 3 },
+  ];
+
+  for (const group of defaultGroups) {
+    await prisma.eventGroup.upsert({
+      where: { orgId_name: { orgId: organization.id, name: group.name } },
+      update: { color: group.color, memberCount: group.memberCount },
+      create: { orgId: organization.id, ...group },
+    });
+  }
 }
 
 main()

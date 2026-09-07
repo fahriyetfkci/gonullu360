@@ -37,6 +37,21 @@ imzalı, `HttpOnly` cookie'dedir; cookie ile durum değiştiren rotalar CSRF
 koruması kullanır. Giriş ve hassas auth rotalarında Redis destekli rate limit
 bulunur.
 
+## Events API
+
+- `GET /api/events` — etkinlikleri filtreli ve sayfalı listeler
+- `POST /api/events` — etkinlik oluşturur
+- `GET /api/events/:id` — etkinlik detayını döndürür
+- `PUT /api/events/:id` — etkinliği günceller
+- `DELETE /api/events/:id` — etkinliği arşivler
+- `GET /api/events/options` — hedef grupları ve yayımlanmış kayıt formlarını döndürür
+- `POST /api/events/groups` — yeni hedef grup oluşturur
+- `POST /api/events/poster` — en fazla 5 MB PNG/JPEG afiş yükler
+
+Tüm etkinlik rotaları ADMIN oturumu gerektirir ve organizasyon kapsamını JWT'deki
+`orgId` üzerinden belirler. Afişler geliştirme ortamında `UPLOAD_DIR` klasöründe
+tutulur; üretimde bu servis S3 uyumlu bir depolama adaptörüyle değiştirilebilir.
+
 ## Forms API
 
 - `GET /api/forms/draft` — ADMIN oturumu gerekir

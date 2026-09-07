@@ -4,6 +4,11 @@ import { AppError } from "../shared/errors";
 import { sendError } from "../shared/response";
 
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
+  if (typeof err === "object" && err !== null && "type" in err && err.type === "entity.too.large") {
+    sendError(res, 413, "Yüklenen dosya izin verilen boyutu aşıyor", "PAYLOAD_TOO_LARGE");
+    return;
+  }
+
   if (err instanceof ZodError) {
     const message = err.errors.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ");
     sendError(res, 422, message, "VALIDATION_ERROR");

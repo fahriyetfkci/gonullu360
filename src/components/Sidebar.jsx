@@ -72,6 +72,10 @@ export default function Sidebar() {
       return "forms";
     }
 
+    if (pageFromHash === "events") {
+      return "events";
+    }
+
     return "dashboard";
   };
 
@@ -102,6 +106,11 @@ export default function Sidebar() {
 
     if (item.page === "forms") {
       window.location.hash = "forms";
+      return;
+    }
+
+    if (item.page === "events") {
+      window.location.hash = "events";
       return;
     }
 

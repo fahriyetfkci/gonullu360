@@ -2,11 +2,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { resolve } from "node:path";
 import { env } from "./config/env";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
 import { authRouter } from "./modules/auth/auth.router";
 import { formRouter } from "./modules/forms/form.router";
+import { eventRouter } from "./modules/events/event.router";
 
 export function createApp(): express.Application {
   const app = express();
@@ -28,9 +30,15 @@ export function createApp(): express.Application {
   app.use(express.urlencoded({ extended: false, limit: "200kb" }));
   app.use(cookieParser(env.COOKIE_SECRET));
   app.use(requestLogger);
+  app.use("/uploads", express.static(resolve(env.UPLOAD_DIR), {
+    fallthrough: false,
+    maxAge: "1d",
+    setHeaders: (response) => response.setHeader("Cross-Origin-Resource-Policy", "cross-origin"),
+  }));
   app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
   app.use("/api/auth", authRouter);
   app.use("/api/forms", formRouter);
+  app.use("/api/events", eventRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;

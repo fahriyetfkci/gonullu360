@@ -26,6 +26,7 @@ const envSchema = z.object({
   ARGON2_PARALLELISM: z.coerce.number().int().positive().default(4),
   EMAIL_VERIFY_TOKEN_TTL: z.coerce.number().int().positive().default(86400),
   RESET_PASSWORD_TOKEN_TTL: z.coerce.number().int().positive().default(3600),
+  UPLOAD_DIR: z.string().min(1).default("uploads"),
 });
 
 const parsed = envSchema.safeParse(process.env);

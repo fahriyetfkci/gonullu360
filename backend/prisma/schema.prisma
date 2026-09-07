@@ -12,6 +12,18 @@ enum Role {
   VOLUNTEER
 }
 
+enum EventType {
+  IN_PERSON
+  ONLINE
+}
+
+enum EventStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+  ARCHIVED
+}
+
 model Organization {
   id        String   @id @default(cuid())
   name      String
@@ -22,6 +34,8 @@ model Organization {
   users     User[]
   auditLogs AuditLog[]
   forms     Form[]
+  events    Event[]
+  eventGroups EventGroup[]
 }
 
 model User {
@@ -46,6 +60,7 @@ model User {
   auditLogs        AuditLog[]
   createdForms     Form[]           @relation("FormCreatedBy")
   publishedVersions FormVersion[]   @relation("FormVersionPublishedBy")
+  createdEvents     Event[]          @relation("EventCreatedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -104,9 +119,69 @@ model Form {
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdBy    User?         @relation("FormCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   versions     FormVersion[]
+  registrationEvents Event[]        @relation("EventRegistrationForm")
 
   @@unique([orgId, clientFormId])
   @@index([orgId, updatedAt])
+}
+
+model Event {
+  id                 String      @id @default(cuid())
+  orgId              String
+  createdById        String?
+  registrationFormId String?
+  name               String
+  slug               String
+  type               EventType
+  status             EventStatus @default(SCHEDULED)
+  startsAt           DateTime
+  endsAt             DateTime
+  timezone           String      @default("Europe/Istanbul")
+  address            String?
+  capacity           Int?
+  contactInfo        String?
+  description        String?
+  posterUrl          String?
+  posterStorageKey   String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdBy        User?        @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  registrationForm Form?        @relation("EventRegistrationForm", fields: [registrationFormId], references: [id], onDelete: SetNull)
+  groups           EventGroupAssignment[]
+
+  @@unique([orgId, slug])
+  @@index([orgId, startsAt])
+  @@index([orgId, status, startsAt])
+  @@index([registrationFormId])
+}
+
+model EventGroup {
+  id          String   @id @default(cuid())
+  orgId       String
+  name        String
+  color       String
+  memberCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  events       EventGroupAssignment[]
+
+  @@unique([orgId, name])
+  @@index([orgId, name])
+}
+
+model EventGroupAssignment {
+  eventId String
+  groupId String
+
+  event Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group EventGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, groupId])
+  @@index([groupId])
 }
 
 model FormVersion {
