@@ -9,6 +9,13 @@ import { requestLogger } from "./middleware/requestLogger";
 import { authRouter } from "./modules/auth/auth.router";
 import { formRouter } from "./modules/forms/form.router";
 import { eventRouter } from "./modules/events/event.router";
+import volunteers from './modules/community/volunteer.router';
+import applications from './modules/community/application.router';
+import { dashboardRouter } from './modules/community/dashboard.router';
+import { notificationRouter } from './modules/community/notification.router';
+import { authenticate } from './middleware/authenticate';
+import { authorize } from './middleware/authorize';
+import { submissionRouter } from './modules/forms/submission.router';
 
 export function createApp(): express.Application {
   const app = express();
@@ -26,10 +33,11 @@ export function createApp(): express.Application {
     allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
   }));
 
-  app.use(express.json({ limit: "200kb" }));
-  app.use(express.urlencoded({ extended: false, limit: "200kb" }));
   app.use(cookieParser(env.COOKIE_SECRET));
   app.use(requestLogger);
+  app.use('/api/forms', submissionRouter);
+  app.use(express.json({ limit: "200kb" }));
+  app.use(express.urlencoded({ extended: false, limit: "200kb" }));
   app.use("/uploads", express.static(resolve(env.UPLOAD_DIR), {
     fallthrough: false,
     maxAge: "1d",
@@ -39,6 +47,10 @@ export function createApp(): express.Application {
   app.use("/api/auth", authRouter);
   app.use("/api/forms", formRouter);
   app.use("/api/events", eventRouter);
+  app.use('/api/volunteers', authenticate, authorize('ADMIN'), volunteers);
+  app.use('/api/applications', authenticate, authorize('ADMIN'), applications);
+  app.use('/api/dashboard', authenticate, authorize('ADMIN'), dashboardRouter);
+  app.use('/api/notifications', authenticate, authorize('ADMIN'), notificationRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;

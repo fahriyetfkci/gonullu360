@@ -12,8 +12,8 @@ const fieldTypeSchema = z.enum([
 ]);
 
 const fileSettingsSchema = z.object({
-  acceptedTypes: z.array(z.string().min(1).max(32)).max(20),
-  maxSizeMb: z.number().int().min(1).max(100),
+  acceptedTypes: z.array(z.enum(['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'])).min(1).max(6),
+  maxSizeMb: z.number().int().min(1).max(10),
 });
 
 const fieldSchema = z

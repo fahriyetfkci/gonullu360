@@ -1,3 +1,4 @@
+import "dotenv/config";
 import argon2 from "argon2";
 import { PrismaClient } from "@prisma/client";
 
@@ -19,10 +20,11 @@ async function main(): Promise<void> {
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   await prisma.user.upsert({
     where: { orgId_email: { orgId: organization.id, email } },
-    update: { passwordHash, role: "ADMIN", isVerified: true, isActive: true },
+    update: {},
     create: {
       orgId: organization.id,
       email,
+      name: "Yönetici",
       passwordHash,
       role: "ADMIN",
       isVerified: true,
@@ -31,18 +33,18 @@ async function main(): Promise<void> {
   });
 
   const defaultGroups = [
-    { name: "Genel", color: "#665cf6", memberCount: 150 },
-    { name: "Üniversite", color: "#16a5f7", memberCount: 40 },
-    { name: "Lise", color: "#20c997", memberCount: 16 },
-    { name: "Ortaokul", color: "#f5a623", memberCount: 56 },
-    { name: "Çocuk", color: "#7b8794", memberCount: 124 },
-    { name: "Çalışan Gençlik", color: "#f43f6e", memberCount: 3 },
+    { name: "Genel", color: "#665cf6", memberCount: 0 },
+    { name: "Üniversite", color: "#16a5f7", memberCount: 0 },
+    { name: "Lise", color: "#20c997", memberCount: 0 },
+    { name: "Ortaokul", color: "#f5a623", memberCount: 0 },
+    { name: "Çocuk", color: "#7b8794", memberCount: 0 },
+    { name: "Çalışan Gençlik", color: "#f43f6e", memberCount: 0 },
   ];
 
   for (const group of defaultGroups) {
     await prisma.eventGroup.upsert({
       where: { orgId_name: { orgId: organization.id, name: group.name } },
-      update: { color: group.color, memberCount: group.memberCount },
+      update: {},
       create: { orgId: organization.id, ...group },
     });
   }

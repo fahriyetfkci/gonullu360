@@ -1,72 +1,19 @@
-# Gönüllü360 Backend
+# Gönüllü360 API
 
-Bu backend, referans `IHH-Gonullu360` projesiyle uyumlu Express, TypeScript,
-Prisma/PostgreSQL, Redis ve JWT yapısını kullanır. Auth modelleri ile form
-modelleri tek Prisma şemasında ve sıralı migration'larda birleştirilmiştir.
+Kurulum için kökteki [README](../README.md) dosyasını kullanın. Bu klasörde `npm run dev`, `npm run build`, `npm test` ve `npm run lint` komutları çalışır.
 
-## Yerel kurulum
+## API grupları
 
-1. `.env.example` dosyasını `.env` olarak kopyalayın.
-2. En az `DATABASE_URL`, `REDIS_URL`, JWT/cookie/CSRF secret değerleri ve
-   `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` alanlarını değiştirin.
-3. `npm install` çalıştırın.
-4. Prisma istemcisini üretin: `npm run db:generate`.
-5. PostgreSQL migration'larını uygulayın: `npm run db:migrate`.
-6. İlk organizasyon ve ADMIN hesabını oluşturun: `npm run db:seed`.
-7. Redis'i çalıştırın ve API'yi `npm run dev` ile başlatın.
+- `/api/auth`: register, login, refresh, me, logout, logout-all, forgot-password, reset-password, verify-email, resend-verification.
+- `/api/volunteers`: organizasyona ait gönüllüler; `/grouped`, `/:id/profile`, `/:id/educations`.
+- `/api/applications`: başvuru oluşturma/listeleme/detay/silme; `PUT /:id/status` ile kabul/ret. Kabul işlemi gönüllü ve profil oluşturup başvuruyu aynı transaction içinde kaldırır.
+- `/api/dashboard/stats?year=...`, `/api/dashboard/range`: gerçek kayıtlarla istatistikler.
+- `/api/notifications`: oturumdaki kullanıcının bildirimleri; `PUT /:id/read`, `PUT /read-all`.
+- `/api/forms`: yöneticiye ait form listesi; `/draft`, `/publish`, `/published`. Taslak güncellemeleri `expectedRevision` kullanır.
+- `/api/forms/:id/submissions`: yayımlanmış forma herkese açık POST; cevapları okumak için ADMIN GET. JSON içindeki `version` yayımdaki sürümle eşleşmelidir. Dosyalar `{fieldId, name, base64}` biçiminde gönderilir, toplam 10 MB sınırı vardır.
+- `/api/forms/:id/submissions/:submissionId/files/:fileId`: organizasyon kontrolüyle dosya indirme.
+- `/api/events`: etkinlik listeleme/oluşturma/detay/güncelleme/arşivleme; `/options`, `/groups`, `/poster`; `PATCH /:id/status`, `POST /:id/participants`.
 
-Üretimde migration için `npm run db:migrate:prod` kullanılır. `db:push`,
-migration geçmişi oluşturmadığından paylaşılan veya üretim veritabanlarında
-kullanılmamalıdır.
+Yönetim rotaları ADMIN rolü ister. Organizasyon istemcinin body/query değerinden değil doğrulanmış JWT'den alınır. Başarılı cevaplar `{ success: true, data }` biçimindedir. Public form okuma/gönderme ve auth giriş/şifre sıfırlama rotaları oturum gerektirmez.
 
-## Auth API
-
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
-- `POST /api/auth/logout-all`
-- `GET /api/auth/me`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password`
-- `POST /api/auth/verify-email`
-- `POST /api/auth/resend-verification`
-
-Access token kısa ömürlüdür ve frontend belleğinde tutulur. Refresh token
-imzalı, `HttpOnly` cookie'dedir; cookie ile durum değiştiren rotalar CSRF
-koruması kullanır. Giriş ve hassas auth rotalarında Redis destekli rate limit
-bulunur.
-
-## Events API
-
-- `GET /api/events` — etkinlikleri filtreli ve sayfalı listeler
-- `POST /api/events` — etkinlik oluşturur
-- `GET /api/events/:id` — etkinlik detayını döndürür
-- `PUT /api/events/:id` — etkinliği günceller
-- `DELETE /api/events/:id` — etkinliği arşivler
-- `GET /api/events/options` — hedef grupları ve yayımlanmış kayıt formlarını döndürür
-- `POST /api/events/groups` — yeni hedef grup oluşturur
-- `POST /api/events/poster` — en fazla 5 MB PNG/JPEG afiş yükler
-
-Tüm etkinlik rotaları ADMIN oturumu gerektirir ve organizasyon kapsamını JWT'deki
-`orgId` üzerinden belirler. Afişler geliştirme ortamında `UPLOAD_DIR` klasöründe
-tutulur; üretimde bu servis S3 uyumlu bir depolama adaptörüyle değiştirilebilir.
-
-## Forms API
-
-- `GET /api/forms/draft` — ADMIN oturumu gerekir
-- `PUT /api/forms/draft` — ADMIN oturumu gerekir
-- `POST /api/forms/publish` — ADMIN oturumu gerekir
-- `GET /api/forms/published` — organizasyon slug'ı ile herkese açık
-
-Taslak kaydı `expectedRevision` ile iyimser kilitleme uygular. Her yayın,
-`FormVersion` tablosunda değişmez bir JSON snapshot oluşturur. Korumalı form
-rotalarında organizasyon kimliği istemciden değil doğrulanmış JWT'den alınır.
-
-## Veritabanı sırası
-
-- `20260830000000_auth_base`: organizasyon, kullanıcı, oturum ve audit tabloları
-- `20260831000000_add_forms`: form ve form sürümü tabloları
-
-Migration çalıştırmadan önce PostgreSQL'in, uygulamayı başlatmadan önce hem
-PostgreSQL'in hem Redis'in erişilebilir olması gerekir.
+Migration sırası: auth → forms → events → unified community. Paylaşılan veritabanında `npm run db:migrate:prod` kullanın. `db:push` migration geçmişi oluşturmaz.

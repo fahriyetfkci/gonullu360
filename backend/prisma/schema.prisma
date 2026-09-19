@@ -36,12 +36,16 @@ model Organization {
   forms     Form[]
   events    Event[]
   eventGroups EventGroup[]
+  volunteers Volunteer[]
+  applications Application[]
+  notifications Notification[]
 }
 
 model User {
   id                  String    @id @default(cuid())
   orgId               String
   email               String
+  name                String    @default("Yönetici")
   passwordHash        String
   role                Role      @default(VOLUNTEER)
   isVerified          Boolean   @default(false)
@@ -56,6 +60,8 @@ model User {
   updatedAt           DateTime  @updatedAt
 
   organization     Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+  managerNotesAuthored VolunteerProfile[] @relation("ManagerNoteAuthor")
   sessions         RefreshSession[]
   auditLogs        AuditLog[]
   createdForms     Form[]           @relation("FormCreatedBy")
@@ -120,6 +126,7 @@ model Form {
   createdBy    User?         @relation("FormCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   versions     FormVersion[]
   registrationEvents Event[]        @relation("EventRegistrationForm")
+  submissions FormSubmission[]
 
   @@unique([orgId, clientFormId])
   @@index([orgId, updatedAt])
@@ -150,6 +157,7 @@ model Event {
   createdBy        User?        @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   registrationForm Form?        @relation("EventRegistrationForm", fields: [registrationFormId], references: [id], onDelete: SetNull)
   groups           EventGroupAssignment[]
+  participants     EventParticipant[]
 
   @@unique([orgId, slug])
   @@index([orgId, startsAt])
@@ -197,4 +205,167 @@ model FormVersion {
 
   @@unique([formId, version])
   @@index([formId, publishedAt])
+}
+
+model FormSubmission {
+  id String @id @default(cuid())
+  formId String
+  formVersion Int
+  answers Json
+  submittedAt DateTime @default(now())
+  form Form @relation(fields: [formId], references: [id], onDelete: Cascade)
+  files FormSubmissionFile[]
+  @@index([formId, submittedAt])
+}
+
+model FormSubmissionFile {
+  id String @id @default(cuid())
+  submissionId String
+  fieldId String
+  originalName String
+  content Bytes
+  submission FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  @@index([submissionId])
+}
+
+
+model Volunteer {
+  id             Int      @id @default(autoincrement())
+  organizationId String   @map("organization_id")
+  name           String
+  city           String
+  gender         String
+  age            Int
+  education      String   @default("Üniversite")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  profile      VolunteerProfile?
+  interests    VolunteerInterest[]
+  educations   VolunteerEducation[]
+  participants EventParticipant[]
+  organization Organization         @relation(fields: [organizationId], references: [id])
+
+  @@index([createdAt])
+  @@index([city])
+  @@index([active, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, city])
+  @@index([organizationId, gender])
+  @@index([organizationId, age])
+  @@index([organizationId, active, createdAt])
+  @@map("volunteers")
+}
+
+
+model Application {
+  id             Int          @id @default(autoincrement())
+  organizationId String       @map("organization_id")
+  name           String
+  city           String
+  gender         String
+  age            Int
+  education      String       @default("Üniversite")
+  status         String       @default("İşlem Bekliyor")
+  phone          String?
+  email          String?
+  address        String?
+  interests      String?
+  coverLetter    String?      @map("cover_letter")
+  evaluationNote String?      @map("evaluation_note")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([city])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, city])
+  @@map("applications")
+}
+
+
+model VolunteerProfile {
+  volunteerId          Int       @id @map("volunteer_id")
+  volunteerCode        String?   @unique @map("volunteer_code")
+  birthDate            DateTime? @map("birth_date") @db.Date
+  department           String?
+  phone                String?
+  email                String?
+  address              String?
+  photoUrl             String?   @map("photo_url")
+  managerNote          String?   @map("manager_note")
+  coverLetter          String?   @map("cover_letter")
+  volunteeringTarget   Int       @default(80) @map("volunteering_target")
+  participationTarget  Int       @default(70) @map("participation_target")
+  managerNoteAuthorId  String?   @map("manager_note_author_id")
+  managerNoteUpdatedAt DateTime? @map("manager_note_updated_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  volunteer         Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  managerNoteAuthor User?     @relation("ManagerNoteAuthor", fields: [managerNoteAuthorId], references: [id], onDelete: SetNull)
+
+  @@map("volunteer_profiles")
+}
+
+
+model VolunteerInterest {
+  volunteerId Int    @map("volunteer_id")
+  interest    String
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@id([volunteerId, interest])
+  @@index([interest])
+  @@map("volunteer_interests")
+}
+
+
+model VolunteerEducation {
+  id          Int     @id @default(autoincrement())
+  volunteerId Int     @map("volunteer_id")
+  level       String
+  school      String
+  department  String?
+  startYear   Int?    @map("start_year")
+  endYear     Int?    @map("end_year")
+  current     Boolean @default(false)
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  @@index([volunteerId, current])
+  @@map("volunteer_educations")
+}
+
+
+model Notification {
+  id             Int      @id @default(autoincrement())
+  organizationId String   @map("organization_id")
+  userId         String   @map("user_id")
+  message        String
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([userId, read, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("notifications")
+}
+
+
+model EventParticipant {
+  id          Int @id @default(autoincrement())
+  volunteerId Int @map("volunteer_id")
+  eventId     String @map("event_id")
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([volunteerId, eventId])
+  @@index([volunteerId])
+  @@index([eventId])
+  @@map("event_participants")
 }

@@ -439,6 +439,7 @@ export async function getMe(
       id: true,
       orgId: true,
       email: true,
+      name: true,
       role: true,
       isVerified: true,
       isActive: true,

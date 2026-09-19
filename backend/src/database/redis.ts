@@ -13,10 +13,21 @@ redis.on("error", (err: Error) => logger.error("Redis error", { error: err.messa
 redis.on("close", () => logger.warn("Redis connection closed"));
 
 export async function connectRedis(): Promise<void> {
-  await redis.connect();
+  if (redis.status === 'ready') return;
+  if (redis.status === 'wait' || redis.status === 'end') {
+    await redis.connect();
+    return;
+  }
+  // Rate-limit stores can start the lazy connection while modules are loaded.
+  await new Promise<void>((resolve, reject) => {
+    const ready = (): void => { cleanup(); resolve(); };
+    const failed = (error: Error): void => { cleanup(); reject(error); };
+    const cleanup = (): void => { redis.off('ready', ready); redis.off('error', failed); };
+    redis.once('ready', ready);
+    redis.once('error', failed);
+  });
 }
 
 export async function disconnectRedis(): Promise<void> {
   await redis.quit();
 }
-
