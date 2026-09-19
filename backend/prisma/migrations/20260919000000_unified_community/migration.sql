@@ -230,3 +230,4 @@ ALTER TABLE "event_participants" ADD CONSTRAINT "event_participants_volunteer_id
 
 -- AddForeignKey
 ALTER TABLE "event_participants" ADD CONSTRAINT "event_participants_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
