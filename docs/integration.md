@@ -4,7 +4,7 @@
 
 - `feature/event-management` (`47dc616`): giriş, form tasarımı/yayınlama ve etkinlik yönetimi; önceki `irem-frontend`, form-builder, forms-backend ve login branch'lerini içerir.
 - `origin/reyhan-backend` (`a4bc8c8`): gönüllü/başvuru modelleri, organizasyon filtreli API'ler, dashboard hesaplamaları, gerçek API kullanan liste/profil/başvuru ekranları ve bildirim servisi uyarlanarak taşındı.
-- `main` (`235b23a`): yalnızca README. Feature zinciri ile ortak commit geçmişi yoktur; main'e alınırken ilişkisiz geçmişlerin birleştirilmesi gerekir.
+- Başlangıçtaki `main` (`235b23a`) yalnızca README içeriyordu. Feature zinciri ile ilişkisiz olan geçmişler, eski commit'ler korunarak entegrasyon branch'inde birleştirildi.
 
 ## Ortak yapı
 
