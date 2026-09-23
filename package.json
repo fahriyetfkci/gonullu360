@@ -1,0 +1,28 @@
+{
+  "name": "gonullu360",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "start": "npm run dev",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose stop",
+    "frontend:dev": "npm --prefix frontend start",
+    "backend:dev": "npm --prefix backend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "backend:generate": "npm --prefix backend run db:generate",
+    "backend:migrate": "npm --prefix backend run db:migrate:prod",
+    "backend:seed": "npm --prefix backend run db:seed",
+    "test:integration": "npm --prefix backend run test:integration",
+    "test:e2e": "npm --prefix backend run build && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

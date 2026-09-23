@@ -1,0 +1,59 @@
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
+import helmet from "helmet";
+import { resolve } from "node:path";
+import { env } from "./config/env";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+import { requestLogger } from "./middleware/requestLogger";
+import { authRouter } from "./modules/auth/auth.router";
+import { formRouter } from "./modules/forms/form.router";
+import { eventRouter } from "./modules/events/event.router";
+import volunteers from './modules/community/volunteer.router';
+import applications from './modules/community/application.router';
+import { dashboardRouter } from './modules/community/dashboard.router';
+import { notificationRouter } from './modules/community/notification.router';
+import { authenticate } from './middleware/authenticate';
+import { authorize } from './middleware/authorize';
+import { submissionRouter } from './modules/forms/submission.router';
+import { profileRouter } from './modules/account/profile.router';
+
+export function createApp(): express.Application {
+  const app = express();
+  app.set("trust proxy", 1);
+  app.use(helmet());
+
+  const allowedOrigins = env.CORS_ORIGINS.split(",").map((origin) => origin.trim());
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+      else callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+  }));
+
+  app.use(cookieParser(env.COOKIE_SECRET));
+  app.use(requestLogger);
+  app.use('/api/forms', submissionRouter);
+  app.use('/api/account', profileRouter);
+  app.use(express.json({ limit: "200kb" }));
+  app.use(express.urlencoded({ extended: false, limit: "200kb" }));
+  app.use("/uploads", express.static(resolve(env.UPLOAD_DIR), {
+    fallthrough: false,
+    maxAge: "1d",
+    setHeaders: (response) => response.setHeader("Cross-Origin-Resource-Policy", "cross-origin"),
+  }));
+  app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+  app.use("/api/auth", authRouter);
+  app.use("/api/forms", formRouter);
+  app.use("/api/events", eventRouter);
+  app.use('/api/volunteers', authenticate, authorize('ADMIN'), volunteers);
+  app.use('/api/applications', authenticate, authorize('ADMIN'), applications);
+  app.use('/api/dashboard', authenticate, authorize('ADMIN'), dashboardRouter);
+  app.use('/api/notifications', authenticate, authorize('ADMIN'), notificationRouter);
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+  return app;
+}

@@ -1,0 +1,23 @@
+.notification-settings { max-width: 760px; }
+.notification-settings-heading { border-bottom: 1px solid #e4e5e7; margin-bottom: 24px; padding: 12px 24px 18px; }
+.notification-settings-heading h2 { margin: 0; color: #777e8a; font-size: 16px; font-weight: 600; }
+.notification-settings-card { box-sizing: border-box; width: 100%; max-width: 634px; padding: 20px 18px 42px; border: 1px solid #e8e8ea; border-radius: 7px; }
+.notification-settings-card h3 { margin: 0 0 28px; font-size: 20px; font-weight: 600; color: #16191b; }
+.notification-settings-group { min-width: 0; margin: 0 0 32px; padding: 0; border: 0; }
+.notification-settings-group:last-child { margin-bottom: 0; }
+.notification-settings-group legend { width: 100%; box-sizing: border-box; padding: 0 6px 16px; border-bottom: 1px solid #f0f0f1; color: #242629; font-size: 13px; }
+.notification-settings-options { padding: 8px 6px 0; display: grid; gap: 4px; }
+.notification-settings-option { display: grid; grid-template-columns: minmax(0, 380px) 36px; gap: 16px; align-items: center; min-height: 32px; cursor: pointer; color: #909195; font-size: 12px; line-height: 1.6; }
+.notification-settings-option input { appearance: none; -webkit-appearance: none; box-sizing: border-box; width: 36px; height: 20px; margin: 0; border: 0; border-radius: 20px; background: #e5e6e7; cursor: pointer; position: relative; transition: background-color 150ms ease; }
+.notification-settings-option input::before { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #00000012; transition: transform 150ms ease; }
+.notification-settings-option input:checked { background: #00aaa8; }
+.notification-settings-option input:checked::before { transform: translateX(16px); }
+.notification-settings-option input:focus-visible { outline: 2px solid #008e8b; outline-offset: 4px; }
+@media (max-width: 600px) {
+  .notification-settings-heading { padding-left: 4px; }
+  .notification-settings-card { padding: 20px 16px 30px; }
+  .notification-settings-option { grid-template-columns: minmax(0, 1fr) 36px; gap: 12px; min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notification-settings-option input, .notification-settings-option input::before { transition: none; }
+}
