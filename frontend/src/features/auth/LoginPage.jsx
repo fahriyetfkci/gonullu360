@@ -49,9 +49,9 @@ export default function LoginPage() {
         <div className="login-card">
           <img className="login-logo" src={logo} alt="Gönüllü 360" />
           <div className="login-heading">
-            <span>{mode === "login" ? "YÖNETİCİ PANELİ" : "HESAP KURTARMA"}</span>
+            <span>{mode === "login" ? "GÖNÜLLÜ 360" : "HESAP KURTARMA"}</span>
             <h2>{mode === "login" ? "Tekrar hoş geldiniz" : "Şifrenizi sıfırlayın"}</h2>
-            <p>{mode === "login" ? "Devam etmek için yönetici hesabınızla giriş yapın." : "Sıfırlama bağlantısı için e-posta adresinizi girin."}</p>
+            <p>{mode === "login" ? "Devam etmek için hesabınızla giriş yapın." : "Sıfırlama bağlantısı için e-posta adresinizi girin."}</p>
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
@@ -62,7 +62,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="yonetici@example.com"
+                placeholder="kullanici@example.com"
                 required
               />
             </label>

@@ -29,6 +29,28 @@ test('gerçek PostgreSQL/Redis: giriş, başvuru, profil, form, dosya, etkinlik 
     const auth = { Authorization: `Bearer ${token}` }, other = { Authorization: `Bearer ${foreign}` };
     const me = await agent.get('/api/auth/me').set(auth).expect(200);
     assert.equal(me.body.data.orgId, ids[0]);
+    // Account settings persist for every role and never accept a target user ID.
+    const photo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9X8AAAAASUVORK5CYII=';
+    const accountChanges = { name: 'Updated Account', email: 'updated@example.com', phone: '5551234567', jobTitle: 'Coordinator', about: 'About me', address: 'Istanbul', website: 'https://example.com', photo };
+    await request(app).put('/api/account/profile').set(auth).send(accountChanges).expect(200);
+    const account = await request(app).get('/api/account/profile').set(auth).expect(200);
+    for (const [key, value] of Object.entries(accountChanges)) assert.equal(account.body.data[key], value);
+    assert.equal(account.body.data.isVerified, false);
+    assert.equal(account.body.data.passwordHash, undefined);
+    const persisted = await prisma.user.findUniqueOrThrow({ where: { id: me.body.data.id } });
+    assert.equal(persisted.about, accountChanges.about);
+    assert.equal(persisted.photo, photo);
+    const foreignAccount = await request(app).get('/api/account/profile').set(other).expect(200);
+    assert.equal(foreignAccount.body.data.email, 'integration@example.com');
+    await request(app).put('/api/account/profile').set(other).send({ ...accountChanges, id: me.body.data.id }).expect(422);
+    const member = await prisma.user.create({ data: { orgId: ids[0], name: 'Member', email: 'member@example.com', passwordHash, role: 'VOLUNTEER', isVerified: true } });
+    const memberLogin = await request(app).post('/api/auth/login').send({ organizationSlug: slug, email: member.email, password }).expect(200);
+    const memberAuth = { Authorization: `Bearer ${memberLogin.body.data.accessToken}` };
+    await request(app).put('/api/account/profile').set(memberAuth).send({ ...accountChanges, email: member.email, name: 'Updated Member' }).expect(200);
+    await request(app).put('/api/account/profile').set(memberAuth).send(accountChanges).expect(409);
+    const memberProfile = await request(app).get('/api/account/profile').set(memberAuth).expect(200);
+    assert.equal(memberProfile.body.data.role, 'VOLUNTEER');
+    assert.equal(memberProfile.body.data.name, 'Updated Member');
     await request(app).get('/api/volunteers').expect(401);
     await request(app).post('/api/applications').set(auth).send({ name: 'Invalid', age: -1 }).expect(422);
     await request(app).get('/api/volunteers?page=1.5').set(auth).expect(422);

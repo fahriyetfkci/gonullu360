@@ -16,6 +16,7 @@ import { notificationRouter } from './modules/community/notification.router';
 import { authenticate } from './middleware/authenticate';
 import { authorize } from './middleware/authorize';
 import { submissionRouter } from './modules/forms/submission.router';
+import { profileRouter } from './modules/account/profile.router';
 
 export function createApp(): express.Application {
   const app = express();
@@ -36,6 +37,7 @@ export function createApp(): express.Application {
   app.use(cookieParser(env.COOKIE_SECRET));
   app.use(requestLogger);
   app.use('/api/forms', submissionRouter);
+  app.use('/api/account', profileRouter);
   app.use(express.json({ limit: "200kb" }));
   app.use(express.urlencoded({ extended: false, limit: "200kb" }));
   app.use("/uploads", express.static(resolve(env.UPLOAD_DIR), {

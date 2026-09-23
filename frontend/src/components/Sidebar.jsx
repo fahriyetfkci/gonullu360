@@ -35,6 +35,11 @@ const menuItems = [
     page: "notifications",
   },
   {
+    icon: "⚙",
+    label: "Ayarlar",
+    page: "settings",
+  },
+  {
     icon: "🚪",
     label: "Çıkış",
     page: "logout",
@@ -43,11 +48,13 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const visibleMenuItems = menuItems.filter(item => user?.role === 'ADMIN' || ['settings', 'logout'].includes(item.page));
   const [isOpen, setIsOpen] = useState(true);
 
   const getCurrentPage = () => {
     const pageFromHash = window.location.hash.replace("#", "");
+    if (pageFromHash === "settings" || pageFromHash.startsWith("settings/")) return "settings";
 
     if (pageFromHash === "volunteers") {
       return "volunteers";
@@ -81,6 +88,7 @@ export default function Sidebar() {
   }, []);
 
   const handleMenuClick = (item) => {
+    if (item.page === "settings") { window.location.hash = "settings"; return; }
     if (["data-entry", "notifications"].includes(item.page)) { window.location.hash = item.page; return; }
     if (item.page === "dashboard") {
       window.location.hash = "dashboard";
@@ -221,7 +229,7 @@ export default function Sidebar() {
       )}
 
       <nav>
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const isActive = currentPage === item.page;
 
           return (

@@ -5,6 +5,9 @@ import PublicFormPage from './features/form-builder/PublicFormPage';
 import AccountActionPage from './features/auth/AccountActionPage';
 import DataEntryPage from './pages/DataEntryPage';
 import NotificationsPage from './pages/NotificationsPage';
+import SettingsPage from './features/settings/SettingsPage';
+import ProfileEditPage from './features/settings/ProfileEditPage';
+import NotificationSettingsPage from './features/settings/NotificationSettingsPage';
 import Dashboard from './pages/Dashboard';
 import VolunteerListPage from './pages/VolunteerListPage';
 import ProfilePage from './pages/ProfilePage';
@@ -14,9 +17,12 @@ import LoginPage from './features/auth/LoginPage';
 import { useAuth } from './features/auth/AuthProvider';
 
 function App() {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const getCurrentPage = () => {
     const hash = window.location.hash;
+    if (hash === '#settings/profile-edit') return 'profile-edit';
+    if (hash === '#settings/notifications') return 'notification-settings';
+    if (hash === '#settings') return 'settings';
     if (hash.startsWith('#form/')) return 'public-form';
 
     if (hash === '#volunteers') {
@@ -42,6 +48,13 @@ function App() {
   };
 
   const [currentPage, setCurrentPage] = useState(getCurrentPage());
+  const settingsPages = ['settings', 'profile-edit', 'notification-settings'];
+  const needsSettingsRedirect = status === 'authenticated' && user?.role !== 'ADMIN'
+    && currentPage !== 'public-form' && !settingsPages.includes(currentPage);
+
+  useEffect(() => {
+    if (needsSettingsRedirect) window.location.hash = 'settings';
+  }, [needsSettingsRedirect, currentPage]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -66,9 +79,15 @@ function App() {
     return <LoginPage />;
   }
 
+  // Other roles currently have access to account settings only.
+  if (needsSettingsRedirect) return <SettingsPage />;
+
   if (currentPage === 'application') return <ApplicationDetailPage key={window.location.hash} />;
   if (currentPage === 'data-entry') return <DataEntryPage />;
   if (currentPage === 'notifications') return <NotificationsPage />;
+  if (currentPage === 'settings') return <SettingsPage />;
+  if (currentPage === 'notification-settings') return <NotificationSettingsPage />;
+  if (currentPage === 'profile-edit') return <ProfileEditPage />;
 
   if (currentPage === 'volunteers') {
     return <VolunteerListPage />;

@@ -91,7 +91,7 @@ export function notifySessionExpired() {
 
 export function getAuthErrorMessage(error) {
   if (error?.response?.status === 401) return "E-posta veya şifre hatalı.";
-  if (error?.response?.status === 403) return "Bu panele erişmek için yönetici yetkisi gerekiyor.";
+  if (error?.response?.status === 403) return error?.response?.data?.error?.message || "Bu işlem için erişim yetkiniz bulunmuyor.";
   if (error?.response?.status === 429) return "Çok fazla deneme yapıldı. Lütfen biraz bekleyin.";
   return error?.response?.data?.error?.message || "Sunucuya ulaşılamadı. Lütfen tekrar deneyin.";
 }

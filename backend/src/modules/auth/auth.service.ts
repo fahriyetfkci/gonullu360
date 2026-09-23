@@ -440,6 +440,7 @@ export async function getMe(
       orgId: true,
       email: true,
       name: true,
+      photo: true,
       role: true,
       isVerified: true,
       isActive: true,
@@ -589,4 +590,3 @@ export async function resendVerification(
     userAgent: meta.userAgent,
   });
 }
-

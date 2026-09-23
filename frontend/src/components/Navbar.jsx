@@ -15,6 +15,11 @@ export default function Navbar({ user, notifications }) {
       return;
     }
 
+    if (sessionUser?.role !== 'ADMIN') {
+      setManagerNotifications([]);
+      return;
+    }
+
     let active = true;
     getNotifications()
       .then((result) => {
@@ -25,7 +30,7 @@ export default function Navbar({ user, notifications }) {
       });
 
     return () => { active = false; };
-  }, [notifications]);
+  }, [notifications, sessionUser?.role]);
 
   const safeNotifications = managerNotifications;
 

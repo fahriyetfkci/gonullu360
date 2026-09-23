@@ -16,8 +16,8 @@ export function AuthProvider({ children }) {
 
   const establishUser = useCallback(async () => {
     const currentUser = await getCurrentUser();
-    if (currentUser?.role !== "ADMIN") {
-      throw Object.assign(new Error("Admin role required"), { response: { status: 403 } });
+    if (!currentUser?.id) {
+      throw Object.assign(new Error("Valid session required"), { response: { status: 401 } });
     }
     setUser(currentUser);
     setStatus("authenticated");
@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
         await refreshSession();
         const currentUser = await getCurrentUser();
         if (!active) return;
-        if (currentUser?.role !== "ADMIN") throw new Error("Admin role required");
+        if (!currentUser?.id) throw new Error("Valid session required");
         setUser(currentUser);
         setStatus("authenticated");
       } catch {
@@ -77,7 +77,10 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const value = useMemo(() => ({ status, user, login, logout }), [status, user, login, logout]);
+  const updateSessionProfile = useCallback(profile => {
+    setUser(current => current ? { ...current, name: profile.name, email: profile.email, photo: profile.photo, isVerified: profile.isVerified } : current);
+  }, []);
+  const value = useMemo(() => ({ status, user, login, logout, updateSessionProfile }), [status, user, login, logout, updateSessionProfile]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
