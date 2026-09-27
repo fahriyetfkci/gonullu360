@@ -3,9 +3,29 @@ import prisma from '../db/prisma';
 import { getVolunteerProfile, updateVolunteerProfile, VolunteerProfileUpdate } from '../db/volunteerProfileService';
 import { authMiddleware, requireManager } from '../middleware/auth';
 import { organizationContext, OrganizationRequest } from '../middleware/organization';
+import { EDUCATION_INSTITUTION_PERIOD, educationInstitutionStats } from '../data/educationInstitutionStats';
+import { syncEducationInstitutionStats } from '../services/educationStatsSync';
+import { educationSyncResponseSchema, volunteerMapResponseSchema } from '../schemas/volunteerMap';
 
 const router = Router();
 router.use(organizationContext);
+
+type StoredEducationStat = {
+  city: string;
+  studentCount: number;
+  universities: number;
+  middleSchools: number;
+  highSchools: number;
+  vocationalHighSchools: number;
+  period: string;
+  syncStatus: string;
+  syncError: string | null;
+  lastAttemptAt: Date | null;
+  syncedAt: Date;
+};
+const educationStatReader = prisma.educationInstitutionStat as unknown as {
+  findMany(args: { orderBy: { city: 'asc' } }): Promise<StoredEducationStat[]>;
+};
 
 function pageParams(req: Request, defaultLimit: number) {
   const page = Math.max(1, Number(req.query.page) || 1);
@@ -73,6 +93,82 @@ router.get('/grouped', async (req: OrganizationRequest, res) => {
   );
   const total = Number(count[0]?.total ?? 0);
   return res.json({ volunteers, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+});
+
+router.get('/map', async (req: OrganizationRequest, res) => {
+  const organizationId = req.organizationId!;
+  const [cityGroups, participationRows, storedEducationStats] = await Promise.all([
+    prisma.volunteer.groupBy({
+      by: ['city'],
+      where: { organizationId, city: { not: '' } },
+      _count: { _all: true },
+      orderBy: { city: 'asc' },
+    }),
+    prisma.$queryRaw<Array<{ city: string; eventCount: bigint }>>`
+      SELECT v.city, COUNT(DISTINCT ep.event_id) AS "eventCount"
+      FROM volunteers v
+      LEFT JOIN event_participants ep ON ep.volunteer_id = v.id
+      WHERE v.organization_id = ${organizationId} AND v.city <> ''
+      GROUP BY v.city`,
+    educationStatReader.findMany({ orderBy: { city: 'asc' } }),
+  ]);
+
+  const availableEducationStats = storedEducationStats.length === 81
+    ? Object.fromEntries(storedEducationStats.map(item => [item.city, {
+      studentCount: item.studentCount,
+      universities: item.universities,
+      middleSchools: item.middleSchools,
+      highSchools: item.highSchools,
+      vocationalHighSchools: item.vocationalHighSchools,
+    }]))
+    : Object.fromEntries(Object.entries(educationInstitutionStats).map(([city, values]) => [city, { ...values, studentCount: 0 }]));
+  const educationInstitutionPeriod = storedEducationStats[0]?.period ?? EDUCATION_INSTITUTION_PERIOD;
+  const educationStatsSyncedAt = storedEducationStats.length ? storedEducationStats.reduce(
+    (latest, item) => item.syncedAt > latest ? item.syncedAt : latest,
+    storedEducationStats[0].syncedAt,
+  ) : null;
+  const educationSyncStatus = storedEducationStats[0]?.syncStatus ?? 'not_started';
+  const educationSyncError = storedEducationStats[0]?.syncError ?? null;
+  const educationSyncLastAttemptAt = storedEducationStats[0]?.lastAttemptAt ?? null;
+
+  const cities = Object.entries(availableEducationStats).map(([city, educationInstitutions]) => {
+    const group = cityGroups.find(item => item.city === city);
+    const eventCount = Number(participationRows.find(item => item.city === city)?.eventCount ?? 0);
+    return {
+      city,
+      volunteerCount: group?._count._all ?? 0,
+      studentCount: educationInstitutions.studentCount,
+      monthlyAverageEvents: Number((eventCount / 12).toFixed(1)),
+      educationInstitutions: {
+        universities: educationInstitutions.universities,
+        middleSchools: educationInstitutions.middleSchools,
+        highSchools: educationInstitutions.highSchools,
+        vocationalHighSchools: educationInstitutions.vocationalHighSchools,
+      },
+    };
+  });
+  const responsePayload = volunteerMapResponseSchema.parse({
+    cities,
+    educationInstitutionPeriod,
+    educationStatsSyncedAt,
+    educationSyncStatus,
+    educationSyncError,
+    educationSyncLastAttemptAt,
+    totalVolunteers: cities.reduce((sum, city) => sum + city.volunteerCount, 0),
+  });
+  return res.json(responsePayload);
+});
+
+router.post('/map/sync', authMiddleware, requireManager, async (_req, res) => {
+  try {
+    await syncEducationInstitutionStats();
+    return res.json(educationSyncResponseSchema.parse({ message: 'Eğitim istatistikleri güncellendi.' }));
+  } catch (error) {
+    return res.status(502).json({
+      error: 'Resmî eğitim istatistikleri şu anda güncellenemedi.',
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
 });
 
 router.get('/', async (req: OrganizationRequest, res) => {

@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { getNotifications, getStoredUser, logout, markNotificationRead } from '../services/api';
 
 export default function Navbar({ user, notifications }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [managerNotifications, setManagerNotifications] = useState(notifications || []);
+  const profileTriggerRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const notificationTriggerRef = useRef(null);
+  const notificationMenuRef = useRef(null);
 
   useEffect(() => {
     if (notifications) {
@@ -23,6 +27,22 @@ export default function Navbar({ user, notifications }) {
 
     return () => { active = false; };
   }, [notifications]);
+
+  useEffect(() => {
+    if (!showProfileMenu && !showNotifications) return undefined;
+
+    const closeOpenMenus = (event) => {
+      const target = event.target;
+      const insideProfile = profileTriggerRef.current?.contains(target) || profileMenuRef.current?.contains(target);
+      const insideNotifications = notificationTriggerRef.current?.contains(target) || notificationMenuRef.current?.contains(target);
+
+      if (showProfileMenu && !insideProfile) setShowProfileMenu(false);
+      if (showNotifications && !insideNotifications) setShowNotifications(false);
+    };
+
+    document.addEventListener('mousedown', closeOpenMenus);
+    return () => document.removeEventListener('mousedown', closeOpenMenus);
+  }, [showProfileMenu, showNotifications]);
 
   const safeNotifications = managerNotifications;
 
@@ -62,15 +82,19 @@ export default function Navbar({ user, notifications }) {
         justifyContent: 'flex-end',
         alignItems: 'center',
         gap: 18,
-        padding: '10px 24px',
-        minHeight: 52,
+        padding: '6px 24px',
+        minHeight: 46,
         backgroundColor: '#fff',
         borderBottom: '1px solid #eee',
-        position: 'relative',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        boxShadow: '0 2px 10px rgba(32, 45, 60, 0.05)',
       }}
     >
       {/* Profil alanı */}
       <div
+        ref={profileTriggerRef}
         onClick={handleProfileClick}
         style={{
           display: 'flex',
@@ -87,8 +111,8 @@ export default function Navbar({ user, notifications }) {
         {/* Profil fotoğrafı veya varsayılan ikon */}
         <div
           style={{
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             borderRadius: '50%',
             backgroundColor: '#f1f3f5',
             overflow: 'hidden',
@@ -168,6 +192,7 @@ export default function Navbar({ user, notifications }) {
 
       {/* Bildirim ikonu en sağda */}
       <div
+        ref={notificationTriggerRef}
         style={{
           position: 'relative',
           cursor: 'pointer',
@@ -210,9 +235,10 @@ export default function Navbar({ user, notifications }) {
       {/* Profil menüsü */}
       {showProfileMenu && (
         <div
+          ref={profileMenuRef}
           style={{
             position: 'absolute',
-            top: 66,
+            top: 58,
             right: 72,
             width: 190,
             backgroundColor: '#fff',
@@ -299,9 +325,10 @@ export default function Navbar({ user, notifications }) {
       {/* Bildirim kutusu */}
       {showNotifications && (
         <div
+          ref={notificationMenuRef}
           style={{
             position: 'absolute',
-            top: 66,
+            top: 58,
             right: 24,
             backgroundColor: '#fff',
             border: '1px solid #eee',

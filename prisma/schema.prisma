@@ -164,8 +164,14 @@ model Event {
   date           DateTime @db.Date
   target         Int      @default(0)
   completed      Boolean  @default(false)
+  time           String?  @default("13:00")
+  groupName      String?  @map("group_name")
+  imageUrl       String?  @map("image_url")
+  notes          String?
 
   participants EventParticipant[]
+  tasks        EventTask[]
+  report       EventReport?
   organization Organization       @relation(fields: [organizationId], references: [id])
 
   @@index([date])
@@ -173,6 +179,35 @@ model Event {
   @@index([organizationId, date])
   @@index([organizationId, completed, date])
   @@map("events")
+}
+
+model EventReport {
+  id                Int      @id @default(autoincrement())
+  eventId           Int      @unique @map("event_id")
+  summary           String   @default("")
+  achievements      String   @default("")
+  issues            String   @default("")
+  managerEvaluation String   @default("") @map("manager_evaluation")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("event_reports")
+}
+
+model EventTask {
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @map("event_id")
+  title     String
+  completed Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, position])
+  @@map("event_tasks")
 }
 
 model EventParticipant {
@@ -280,6 +315,26 @@ model VolunteerEducation {
 
   @@index([volunteerId, current])
   @@map("volunteer_educations")
+}
+
+model EducationInstitutionStat {
+  id                    Int      @id @default(autoincrement())
+  city                  String   @unique
+  studentCount          Int      @default(0) @map("student_count")
+  universities          Int
+  middleSchools         Int      @map("middle_schools")
+  highSchools           Int      @map("high_schools")
+  vocationalHighSchools Int      @map("vocational_high_schools")
+  period                String
+  mebSource             String   @map("meb_source")
+  yokSource             String   @map("yok_source")
+  syncStatus            String   @default("success") @map("sync_status")
+  syncError             String?  @map("sync_error")
+  lastAttemptAt         DateTime? @map("last_attempt_at")
+  syncedAt              DateTime @map("synced_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("education_institution_stats")
 }
 
 model Form {

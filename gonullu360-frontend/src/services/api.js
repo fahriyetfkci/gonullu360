@@ -169,6 +169,14 @@ export const markNotificationRead = async (id) => {
   return response.data;
 };
 
+export const getVolunteerMapStats = async () => (
+  await axios.get(`${API_URL}/volunteers/map`)
+).data;
+
+export const syncVolunteerMapStats = async () => (
+  await axios.post(`${API_URL}/volunteers/map/sync`)
+).data;
+
 export const setupMfa = async () => (await axios.post(`${API_URL}/auth/mfa/setup`)).data;
 export const enableMfa = async (code) => (await axios.post(`${API_URL}/auth/mfa/enable`, { code })).data;
 export const disableMfa = async (password) => (await axios.post(`${API_URL}/auth/mfa/disable`, { password })).data;
@@ -216,3 +224,24 @@ export const downloadSubmissionFile = async (formId, submissionId, file) => {
   link.remove();
   URL.revokeObjectURL(url);
 };
+
+export const getEventDetail = async (id) => {
+  const path = id ? `/events/${id}` : '/events/latest';
+  return (await axios.get(`${API_URL}${path}`)).data;
+};
+
+export const saveEventNotes = async (id, notes) => (
+  await axios.put(`${API_URL}/events/${id}/notes`, { notes })
+).data;
+
+export const setEventTaskCompleted = async (eventId, taskId, completed) => (
+  await axios.patch(`${API_URL}/events/${eventId}/tasks/${taskId}`, { completed })
+).data;
+
+export const getEventReport = async eventId => (
+  await axios.get(`${API_URL}/events/${eventId}/report`)
+).data;
+
+export const saveEventReport = async (eventId, report) => (
+  await axios.put(`${API_URL}/events/${eventId}/report`, report)
+).data;

@@ -61,9 +61,13 @@ APP_MODE=demo
 SEED_USER_PASSWORD=guclu-bir-demo-parolasi
 TEST_MANAGER_EMAIL=enes@gonullu360.com
 TEST_MANAGER_PASSWORD=guclu-bir-demo-parolasi
+EDUCATION_SYNC_ENABLED=true
+EDUCATION_SYNC_INTERVAL_HOURS=168
 ```
 
 Gerçek `.env` dosyasını GitHub'a göndermeyin.
+
+`EDUCATION_SYNC_ENABLED=true` olduğunda MEB ve YÖK eğitim istatistikleri backend açıldıktan sonra otomatik güncellenir. `168` saat haftada bir güncelleme anlamına gelir. Kaynak geçici olarak erişilemezse veritabanındaki son başarılı veriler korunur.
 
 ## 4. Backend kurulumu
 
@@ -122,6 +126,8 @@ Ardından:
 npm install
 npm start
 ```
+
+Backend ve frontend iki ayrı terminalde açık tutulmalıdır.
 
 Tarayıcı otomatik açılmazsa şu adresi ziyaret edin:
 

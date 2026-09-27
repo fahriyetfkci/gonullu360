@@ -202,9 +202,12 @@ function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) 
         <main className="builder-main">
           <div className="builder-content">
             <header className="builder-heading">
-              <span>FORM YÖNETİMİ</span>
-              <h1>Form Oluştur</h1>
-              <p>Alanları sürükleyip bölümlere bırakarak formunuzu hazırlayın.</p>
+              <div>
+                <span>FORM YÖNETİMİ</span>
+                <h1>Form Oluştur</h1>
+                <p>Alanları sürükleyip bölümlere bırakarak formunuzu hazırlayın.</p>
+              </div>
+              <button className="form-tools-back" type="button" onClick={onBack}>← Form Araçlarına Dön</button>
             </header>
 
             <div className="form-name-card">
@@ -291,7 +294,7 @@ function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) 
                 <span>↗</span><div><strong>Yayındaki Form</strong><small>Sürüm {published.version} görünümünü aç</small></div><b>›</b>
               </button>}
             <button type="button" onClick={onBack}>
-              <span>←</span><div><strong>Geri Dön</strong><small>Önceki sayfaya dön</small></div><b>›</b>
+              <span>←</span><div><strong>Form Araçlarına Git</strong><small>Araçlar ekranına dön</small></div><b>›</b>
             </button>
           </nav>
 

@@ -1,0 +1,41 @@
+.education-sync-card {
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 1050px;
+  margin: 0 auto 26px;
+  padding: 15px 18px;
+  border: 1px solid #dfe5e8;
+  border-left: 4px solid #08b485;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(32, 45, 60, .05);
+}
+
+.education-sync-card.failed { border-left-color: #d64545; }
+.education-sync-card.running { border-left-color: #e5a525; }
+.education-sync-card > div:first-child { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 18px; }
+.education-sync-card strong { color: #26384d; }
+.education-sync-card span { color: #737d87; font-size: 12px; }
+.education-sync-actions { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.education-sync-status { font-weight: 700; }
+.education-sync-card.success .education-sync-status { color: #058861; }
+.education-sync-card.failed .education-sync-status { color: #c0392b; }
+.education-sync-actions button { padding: 10px 15px; border: 0; border-radius: 8px; background: #08b485; color: #fff; cursor: pointer; font-weight: 700; }
+.education-sync-actions button:disabled { cursor: wait; opacity: .65; }
+.education-sync-card p { position: absolute; top: 100%; left: 18px; margin: 3px 0 0; color: #c0392b; font-size: 11px; }
+.education-sync-card .education-sync-message.success { color: #058861; }
+.education-sync-card .education-sync-message.error { color: #c0392b; }
+.education-sync-message { animation: education-sync-message-life 3s ease forwards; }
+
+@keyframes education-sync-message-life {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (max-width: 760px) {
+  .education-sync-card { align-items: stretch; flex-direction: column; }
+  .education-sync-actions { justify-content: space-between; }
+}

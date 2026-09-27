@@ -75,6 +75,10 @@ export default function Sidebar() {
       return "security";
     }
 
+    if (pageFromHash === "events" || pageFromHash.startsWith("events/")) {
+      return "events";
+    }
+
 
     return "dashboard";
   };
@@ -114,6 +118,11 @@ export default function Sidebar() {
       return;
     }
 
+    if (item.page === "events") {
+      window.location.hash = "events";
+      return;
+    }
+
     if (item.page === "logout") {
       logout();
       return;
@@ -123,18 +132,35 @@ export default function Sidebar() {
   };
 
   return (
+    <>
+    <div
+      aria-hidden="true"
+      style={{
+        width: isOpen ? 220 : 64,
+        minWidth: isOpen ? 220 : 64,
+        flexShrink: 0,
+        transition: "width 0.3s ease, min-width 0.3s ease",
+      }}
+    />
     <aside
       style={{
         width: isOpen ? 220 : 64,
-        minHeight: "100vh",
+        height: "100vh",
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
+        overflowX: "hidden",
+        overflowY: "auto",
         padding: "18px 0",
         borderRight: "1px solid #eeeeee",
         backgroundColor: "#ffffff",
         transition: "width 0.3s ease",
+        position: "fixed",
+        top: 0,
+        bottom: 0,
+        left: 0,
+        boxSizing: "border-box",
+        zIndex: 120,
       }}
     >
       <div
@@ -283,5 +309,6 @@ export default function Sidebar() {
         })}
       </nav>
     </aside>
+    </>
   );
 }

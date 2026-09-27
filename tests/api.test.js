@@ -44,10 +44,25 @@ test('OpenAPI belgesi yönetici API gruplarını içerir', async () => {
   assert.equal(document.openapi, '3.0.3');
   for (const path of [
     '/auth/forgot-password', '/auth/reset-password', '/volunteers',
-    '/applications', '/notifications', '/forms', '/forms/{id}/submissions',
+    '/volunteers/map', '/volunteers/map/sync', '/applications', '/notifications', '/forms', '/forms/{id}/submissions',
   ]) {
     assert.ok(document.paths[path], `${path} OpenAPI belgesinde bulunmalıdır`);
   }
+});
+
+test('gönüllü haritası cevabı 81 il ve senkronizasyon durumuyla döner', async () => {
+  const response = await fetch(`${baseUrl}/volunteers/map`);
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.cities.length, 81);
+  assert.ok(body.cities.every(city => Number.isInteger(city.studentCount) && city.studentCount >= 0));
+  assert.match(body.educationInstitutionPeriod, /^\d{4}-\d{4}$/);
+  assert.ok(['success', 'running', 'failed', 'not_started'].includes(body.educationSyncStatus));
+});
+
+test('eğitim verisi manuel güncellemesi yönetici oturumu gerektirir', async () => {
+  const response = await fetch(`${baseUrl}/volunteers/map/sync`, { method: 'POST' });
+  assert.equal(response.status, 401);
 });
 
 test('dashboard geçersiz yılı reddeder', async () => {

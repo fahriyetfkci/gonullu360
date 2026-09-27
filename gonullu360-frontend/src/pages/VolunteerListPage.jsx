@@ -1,14 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import "./VolunteerListPage.css";
 import { getGroupedVolunteers } from '../services/api';
 import './VolunteerPagination.css';
+import VolunteerMapView from './VolunteerMapView';
 
 const PAGE_SIZE = 10;
 
 
 export default function VolunteerListPage() {
+  const [activeView, setActiveView] = useState(() => (
+    sessionStorage.getItem('volunteerActiveView') === 'map' ? 'map' : 'list'
+  ));
   const [volunteerData, setVolunteerData] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -16,6 +21,27 @@ export default function VolunteerListPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState(null);
+
+  useEffect(() => {
+    sessionStorage.setItem('volunteerActiveView', activeView);
+  }, [activeView]);
+
+  useEffect(() => {
+    if (activeMenuId === null) return undefined;
+
+    const closeActionMenu = () => {
+      setActiveMenuId(null);
+      setMenuPosition(null);
+    };
+
+    window.addEventListener('scroll', closeActionMenu, true);
+    window.addEventListener('resize', closeActionMenu);
+
+    return () => {
+      window.removeEventListener('scroll', closeActionMenu, true);
+      window.removeEventListener('resize', closeActionMenu);
+    };
+  }, [activeMenuId]);
 
   const [searchText, setSearchText] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
@@ -157,6 +183,13 @@ export default function VolunteerListPage() {
     setActiveMenuId(null);
   };
 
+  const changeActiveView = (nextView) => {
+    if (nextView === 'list') {
+      sessionStorage.removeItem('volunteerMapFocusedCity');
+    }
+    setActiveView(nextView);
+  };
+
   return (
     <div className="volunteer-page" onClick={() => setActiveMenuId(null)}>
       <Sidebar />
@@ -165,7 +198,13 @@ export default function VolunteerListPage() {
         <Navbar />
 
         <main className="volunteer-main">
-          <h1>Gönüllü Listesi</h1>
+          <div className="volunteer-view-tabs" data-active-view={activeView} role="tablist" aria-label="Gönüllü görünümü">
+            <button type="button" role="tab" aria-selected={activeView === 'list'} className={activeView === 'list' ? 'active' : ''} onClick={() => changeActiveView('list')}>Gönüllü Gruplama</button>
+            <button type="button" role="tab" aria-selected={activeView === 'map'} className={activeView === 'map' ? 'active' : ''} onClick={() => changeActiveView('map')}>Gönüllü Haritası</button>
+          </div>
+
+          <div key={activeView} className={`volunteer-view-panel volunteer-view-panel-${activeView}`}>
+          {activeView === 'map' ? <VolunteerMapView /> : <>
 
           <section className="hero-card">
             <h2>Gönüllü Gruplama</h2>
@@ -418,8 +457,9 @@ export default function VolunteerListPage() {
                             ⋮
                           </button>
 
-                          {activeMenuId === volunteer.key && (
+                          {activeMenuId === volunteer.key && createPortal(
                             <div
+                              onClick={(event) => event.stopPropagation()}
                               style={{
                                 position: "fixed",
                                 top: menuPosition?.top ?? 0,
@@ -431,7 +471,7 @@ export default function VolunteerListPage() {
                                 boxShadow:
                                   "0 8px 24px rgba(0, 0, 0, 0.12)",
                                 overflow: "hidden",
-                                zIndex: 50,
+                                zIndex: 500,
                               }}
                             >
                               <button
@@ -466,7 +506,8 @@ export default function VolunteerListPage() {
                               >
                                 Sil
                               </button>
-                            </div>
+                            </div>,
+                            document.body
                           )}
                         </div>
                       </td>
@@ -505,6 +546,8 @@ export default function VolunteerListPage() {
               </div>
             )}
           </section>
+          </>}
+          </div>
         </main>
       </div>
     </div>

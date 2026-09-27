@@ -8,6 +8,7 @@ const ApplicationDetailPage = lazy(() => import('./pages/ApplicationDetailPage')
 const FormBuilderFeature = lazy(() => import('./features/form-builder/FormBuilderFeature'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage'));
 
 const PageLoading = () => <div style={{minHeight:'100vh',display:'grid',placeItems:'center',color:'#7f8b92'}}>Yükleniyor…</div>;
 
@@ -33,6 +34,10 @@ function App() {
 
     if (pageFromHash === "security") {
       return "security";
+    }
+
+    if (pageFromHash === "events" || pageFromHash.startsWith("events/")) {
+      return "events";
     }
 
     return "dashboard";
@@ -76,6 +81,10 @@ function App() {
 
   if (currentPage === "security") {
     page = <SecurityPage />;
+  }
+
+  if (currentPage === "events") {
+    page = <EventDetailPage />;
   }
 
   page ??= <Dashboard />;

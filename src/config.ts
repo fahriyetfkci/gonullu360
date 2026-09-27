@@ -29,6 +29,8 @@ const envSchema = z.object({
   ARGON2_TIME_COST: z.coerce.number().int().positive().default(3),
   ARGON2_PARALLELISM: z.coerce.number().int().positive().default(4),
   EMAIL_VERIFY_TOKEN_TTL: z.coerce.number().int().positive().default(86400),
+  EDUCATION_SYNC_ENABLED: z.enum(['true', 'false']).default('true'),
+  EDUCATION_SYNC_INTERVAL_HOURS: z.coerce.number().int().positive().default(168),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -75,6 +77,10 @@ export const config = {
   uploadDir: env.UPLOAD_DIR,
   argon2: { memoryCost: env.ARGON2_MEMORY_COST, timeCost: env.ARGON2_TIME_COST, parallelism: env.ARGON2_PARALLELISM },
   emailVerifyTokenTtl: env.EMAIL_VERIFY_TOKEN_TTL,
+  educationSync: {
+    enabled: env.EDUCATION_SYNC_ENABLED === 'true',
+    intervalHours: env.EDUCATION_SYNC_INTERVAL_HOURS,
+  },
   smtp: {
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,

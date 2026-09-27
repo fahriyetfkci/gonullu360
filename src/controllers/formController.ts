@@ -23,10 +23,39 @@ const parseId = (value: string | string[]) => {
 };
 const validationMessage = (error: z.ZodError) => error.issues.map(issue => issue.message).join('; ');
 const pageParams = (req: AuthRequest, defaultLimit = 20) => {
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || defaultLimit));
+  const page = Math.max(1, Math.trunc(Number(req.query.page) || 1));
+  const limit = Math.min(100, Math.max(1, Math.trunc(Number(req.query.limit) || defaultLimit)));
   return { page, limit, skip: (page - 1) * limit };
 };
+
+type FormField = z.infer<typeof formSchema>['sections'][number]['fields'][number];
+
+function validateAnswer(field: FormField, value: unknown): string | null {
+  if (value === undefined || value === null || value === '') {
+    return field.required ? `${field.label} alanı zorunludur` : null;
+  }
+  if (typeof value !== 'string') return `${field.label} alanı geçersiz`;
+
+  const limits: Partial<Record<FormField['type'], number>> = {
+    full_name: 200,
+    email: 320,
+    phone: 50,
+    multiple_choice: 200,
+    date: 10,
+    long_text: 10_000,
+  };
+  if (value.length > (limits[field.type] ?? 10_000)) return `${field.label} alanı çok uzun`;
+  if (field.type === 'email' && !z.string().email().safeParse(value).success) return `${field.label} geçerli bir e-posta adresi olmalıdır`;
+  if (field.type === 'multiple_choice' && !field.options?.includes(value)) return `${field.label} için geçersiz bir seçenek gönderildi`;
+  if (field.type === 'date') {
+    const validFormat = /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const parsedDate = new Date(`${value}T00:00:00.000Z`);
+    if (!validFormat || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== value) {
+      return `${field.label} geçerli bir tarih olmalıdır`;
+    }
+  }
+  return null;
+}
 
 function uploadSubmissionFiles(req: Request, res: Response, next: NextFunction) {
   formFileUpload.any()(req, res, error => {
@@ -80,6 +109,11 @@ router.post('/:id/submissions', uploadSubmissionFiles, async (req, res) => {
   const fieldsById = new Map(fields.map(field => [field.id, field]));
   const filesByField = new Map<string, Express.Multer.File[]>();
 
+  for (const fieldId of Object.keys(answerRecord)) {
+    const field = fieldsById.get(fieldId);
+    if (!field || field.type === 'file') return reject(400, 'Formda bulunmayan bir cevap alanı gönderildi');
+  }
+
   for (const file of uploadedFiles) {
     const field = fieldsById.get(file.fieldname);
     if (!field || field.type !== 'file') return reject(400, 'Formda bulunmayan bir dosya alanı gönderildi');
@@ -102,8 +136,8 @@ router.post('/:id/submissions', uploadSubmissionFiles, async (req, res) => {
       delete answerRecord[field.id];
       continue;
     }
-    const value = answerRecord[field.id];
-    if (field.required && (value === undefined || value === null || value === '')) return reject(400, `${field.label} alanı zorunludur`);
+    const answerError = validateAnswer(field, answerRecord[field.id]);
+    if (answerError) return reject(400, answerError);
   }
 
   try {
@@ -179,7 +213,11 @@ router.put('/:id', ...managerOnly, async (req: AuthRequest, res: Response) => {
     where: { id, organizationId: req.user!.organizationId, draftRevision: expectedRevision },
     data: { title: parsed.data.title.trim() || 'İsimsiz Form', description: parsed.data.description?.trim() || null, draftSchema: parsed.data as Prisma.InputJsonValue, draftRevision: { increment: 1 } },
   });
-  if (!updated.count) return res.status(409).json({ error: 'Taslak başka bir oturumda güncellendi. Sayfayı yenileyin.' });
+  if (!updated.count) {
+    const exists = await prisma.form.count({ where: { id, organizationId: req.user!.organizationId } });
+    if (!exists) return res.status(404).json({ error: 'Form bulunamadı' });
+    return res.status(409).json({ error: 'Taslak başka bir oturumda güncellendi. Sayfayı yenileyin.' });
+  }
   return res.json({ id, schema: parsed.data, revision: expectedRevision + 1, message: 'Taslak kaydedildi' });
 });
 

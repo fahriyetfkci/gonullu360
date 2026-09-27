@@ -9,6 +9,7 @@ import authRoutes from './routes/auth';
 import notificationRoutes from './routes/notifications';
 import applicationRoutes from './routes/applications';
 import formRoutes from './routes/forms';
+import eventRoutes from './routes/events';
 import { config } from './config';
 import prisma from './db/prisma';
 import { hashPassword } from './security/password';
@@ -17,6 +18,7 @@ import { openApiDocument } from './openapi';
 import { auditMutationLogger } from './middleware/audit';
 import { connectRedis, disconnectRedis } from './db/redis';
 import { logger } from './services/logger';
+import { ensureEducationStatsFallback, startEducationStatsScheduler } from './services/educationStatsSync';
 
 const app = express();
 const PORT = config.port;
@@ -26,6 +28,7 @@ app.set('trust proxy', 1);
 async function prepareDatabase() {
   await connectRedis();
   await prisma.$connect();
+  await ensureEducationStatsFallback();
   const users = await prisma.user.findMany({ select: { id:true, password:true } });
   for (const user of users) {
     if (!user.password.startsWith('$2') && !user.password.startsWith('$argon2')) await prisma.user.update({ where:{ id:user.id }, data:{ password:await hashPassword(user.password) } });
@@ -65,12 +68,14 @@ app.use('/api/volunteers', volunteerRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/forms', formRoutes);
+app.use('/api/events', eventRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 if (require.main === module) {
   prepareDatabase()
     .then(() => {
+      const stopEducationStatsScheduler = startEducationStatsScheduler();
       const server = app.listen(PORT, (listenError?: Error) => {
         if (listenError) {
           logger.error('server.listen_failed', { port: PORT, error: listenError.message });
@@ -81,6 +86,7 @@ if (require.main === module) {
       });
       const shutdown = (signal: 'SIGTERM' | 'SIGINT') => {
         logger.info('server.stopping', { signal });
+        stopEducationStatsScheduler();
         server.close(() => { void Promise.all([prisma.$disconnect(), disconnectRedis()]).finally(() => process.exit(0)); });
       };
       process.once('SIGTERM', () => shutdown('SIGTERM'));

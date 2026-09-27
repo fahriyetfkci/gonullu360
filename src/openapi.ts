@@ -5,10 +5,11 @@ const pages = [
   { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 } },
 ];
 const jsonBody = (schema: object) => ({ required: true, content: { 'application/json': { schema } } });
+const jsonResponse = (description: string, schema: object) => ({ description, content: { 'application/json': { schema } } });
 
 export const openApiDocument = {
   openapi: '3.0.3',
-  info: { title: 'Gönüllü 360 API', version: '1.1.0', description: 'PostgreSQL tabanlı yönetici paneli API sözleşmesi' },
+  info: { title: 'Gönüllü 360 API', version: '1.2.0', description: 'PostgreSQL tabanlı yönetici paneli API sözleşmesi' },
   servers: [{ url: 'http://localhost:3001/api', description: 'Yerel geliştirme' }],
   tags: ['Auth', 'Dashboard', 'Volunteers', 'Applications', 'Forms', 'Notifications'].map(name => ({ name })),
   components: {
@@ -21,6 +22,10 @@ export const openApiDocument = {
       ApplicationInput: { type: 'object', required: ['name', 'city', 'gender', 'age'], properties: { name: { type: 'string' }, city: { type: 'string' }, gender: { type: 'string' }, age: { type: 'integer' }, education: { type: 'string' }, phone: { type: 'string' }, email: { type: 'string', format: 'email' }, address: { type: 'string' }, interests: { type: 'array', items: { type: 'string' } }, coverLetter: { type: 'string' } } },
       FormSchema: { type: 'object', required: ['schemaVersion', 'id', 'title', 'sections'], additionalProperties: true },
       Answers: { type: 'object', required: ['answers'], properties: { answers: { type: 'object', additionalProperties: true } } },
+      EducationInstitutionCounts: { type: 'object', required: ['universities', 'middleSchools', 'highSchools', 'vocationalHighSchools'], properties: { universities: { type: 'integer', minimum: 0 }, middleSchools: { type: 'integer', minimum: 0 }, highSchools: { type: 'integer', minimum: 0 }, vocationalHighSchools: { type: 'integer', minimum: 0 } } },
+      VolunteerMapCity: { type: 'object', required: ['city', 'volunteerCount', 'studentCount', 'monthlyAverageEvents', 'educationInstitutions'], properties: { city: { type: 'string' }, volunteerCount: { type: 'integer', minimum: 0 }, studentCount: { type: 'integer', minimum: 0 }, monthlyAverageEvents: { type: 'number', minimum: 0 }, educationInstitutions: { $ref: '#/components/schemas/EducationInstitutionCounts' } } },
+      VolunteerMapResponse: { type: 'object', required: ['cities', 'educationInstitutionPeriod', 'educationStatsSyncedAt', 'educationSyncStatus', 'educationSyncError', 'educationSyncLastAttemptAt', 'totalVolunteers'], properties: { cities: { type: 'array', minItems: 81, maxItems: 81, items: { $ref: '#/components/schemas/VolunteerMapCity' } }, educationInstitutionPeriod: { type: 'string', pattern: '^\\d{4}-\\d{4}$', example: '2024-2025' }, educationStatsSyncedAt: { type: 'string', format: 'date-time', nullable: true }, educationSyncStatus: { type: 'string', enum: ['success', 'running', 'failed', 'not_started'] }, educationSyncError: { type: 'string', nullable: true }, educationSyncLastAttemptAt: { type: 'string', format: 'date-time', nullable: true }, totalVolunteers: { type: 'integer', minimum: 0 } } },
+      EducationSyncResponse: { type: 'object', required: ['message'], properties: { message: { type: 'string' } } },
     },
   },
   paths: {
@@ -44,6 +49,8 @@ export const openApiDocument = {
       post: { tags: ['Volunteers'], summary: 'Gönüllü oluşturur', security: bearer, requestBody: jsonBody({ $ref: '#/components/schemas/VolunteerInput' }), responses: { '201': { description: 'Oluşturuldu' }, '403': { description: 'Yönetici yetkisi gerekli' } } },
     },
     '/volunteers/grouped': { get: { tags: ['Volunteers'], summary: 'Gönüllü ve başvuruları gruplu/sayfalı getirir', parameters: pages, responses: { '200': { description: 'Gruplu liste' } } } },
+    '/volunteers/map': { get: { tags: ['Volunteers'], summary: '81 ilin gönüllü ve resmî eğitim istatistiklerini getirir', responses: { '200': jsonResponse('Harita istatistikleri', { $ref: '#/components/schemas/VolunteerMapResponse' }) } } },
+    '/volunteers/map/sync': { post: { tags: ['Volunteers'], summary: 'MEB ve YÖK eğitim istatistiklerini hemen günceller', security: bearer, responses: { '200': jsonResponse('Güncelleme tamamlandı', { $ref: '#/components/schemas/EducationSyncResponse' }), '401': jsonResponse('Oturum gerekli', { $ref: '#/components/schemas/Error' }), '403': jsonResponse('Yönetici yetkisi gerekli', { $ref: '#/components/schemas/Error' }), '502': jsonResponse('Resmî kaynak güncellenemedi', { $ref: '#/components/schemas/Error' }) } } },
     '/volunteers/{id}': {
       get: { tags: ['Volunteers'], summary: 'Gönüllüyü getirir', parameters: [id('Gönüllü numarası')], responses: { '200': { description: 'Gönüllü' }, '404': { description: 'Bulunamadı' } } },
       put: { tags: ['Volunteers'], summary: 'Gönüllüyü günceller', security: bearer, parameters: [id('Gönüllü numarası')], requestBody: jsonBody({ $ref: '#/components/schemas/VolunteerInput' }), responses: { '200': { description: 'Güncellendi' } } },

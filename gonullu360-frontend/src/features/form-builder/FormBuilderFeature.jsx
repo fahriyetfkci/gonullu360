@@ -8,8 +8,30 @@ import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import "./form-builder.css";
 
+const toolCards = [
+  { id: "builder", label: "Form Oluştur", icon: "grid" },
+  { id: "manage", label: "Önceki Formlar", icon: "document" },
+  { id: "analysis", label: "Form Analizi", icon: "chart" },
+  { id: "responses", label: "Yanıtlar", icon: "responses" },
+  { id: "publish", label: "Paylaş ve Yayınla", icon: "share" },
+  { id: "settings", label: "Ayarlar", icon: "settings" },
+];
+
+function ToolIcon({ name }) {
+  const paths = {
+    grid: <><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><rect x="14" y="14" width="6" height="6" /></>,
+    document: <><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M10 12h6M10 16h6" /></>,
+    chart: <><path d="M5 20V11M12 20V4M19 20v-7" /></>,
+    responses: <><rect x="6" y="4" width="14" height="14" rx="1" /><path d="M4 8H2v14h14v-2M10 9.5a3 3 0 1 1 4.6 2.5c-1.6.9-1.6 1.5-1.6 2.2M13 17.5h.01" /></>,
+    share: <><path d="M12 16V3M8 7l4-4 4 4" /><path d="M6 10H4v11h16V10h-2" /></>,
+    settings: <><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></>,
+  };
+
+  return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
+}
+
 export default function FormBuilderFeature() {
-  const [view, setView] = useState("builder");
+  const [view, setView] = useState("tools");
   const [previewSchema, setPreviewSchema] = useState(
     () => loadDraft()?.schema ?? createEmptyForm(),
   );
@@ -89,13 +111,42 @@ export default function FormBuilderFeature() {
     }
   }
 
-  function backToDashboard() {
-    window.location.hash = "dashboard";
+  function backToTools() {
+    setView("tools");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   let content;
 
-  if (view === "preview" || view === "published") {
+  if (view === "tools") {
+    content = (
+      <main className="form-builder-feature form-tools-view">
+        <section className="form-tools-panel" aria-labelledby="form-tools-title">
+          <h1 id="form-tools-title">Form Araçları</h1>
+          <div className="form-tools-grid">
+            {toolCards.map((tool) => {
+              const isAvailable = tool.id === "builder" || tool.id === "manage";
+              return (
+                <button
+                  className="form-tool-card"
+                  type="button"
+                  key={tool.id}
+                  aria-disabled={!isAvailable}
+                  onClick={() => {
+                    if (tool.id === "builder") setView("builder");
+                    if (tool.id === "manage") openManagement();
+                  }}
+                >
+                  <ToolIcon name={tool.icon} />
+                  <span>{tool.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </main>
+    );
+  } else if (view === "preview" || view === "published") {
     const schema = view === "preview" ? previewSchema : published?.schema;
 
     content = (
@@ -161,7 +212,7 @@ export default function FormBuilderFeature() {
       <div className="form-builder-feature forms-management-view">
         <header className="forms-management-header">
           <div><span>FORM YÖNETİMİ</span><h1>Formlar</h1><p>Taslak ve yayındaki formlarınızı buradan yönetin.</p></div>
-          <button type="button" onClick={() => setView("builder")}>← Düzenleyiciye dön</button>
+          <button className="form-tools-back" type="button" onClick={() => setView("tools")}>← Form Araçlarına Dön</button>
         </header>
         {formsError && <p className="forms-management-error">{formsError}</p>}
         {formsLoading ? <div className="forms-management-empty">Formlar yükleniyor...</div> : forms.length === 0 ? <div className="forms-management-empty">Henüz kaydedilmiş bir form yok.</div> : (
@@ -188,7 +239,7 @@ export default function FormBuilderFeature() {
       <div className="form-builder-feature">
         <FormBuilderPage
           key={builderKey}
-          onBack={backToDashboard}
+          onBack={backToTools}
           onManageForms={openManagement}
           onPreview={(schema) => {
             setPreviewSchema(structuredClone(schema));
@@ -212,10 +263,6 @@ export default function FormBuilderFeature() {
       <Sidebar />
       <div className="form-management-page">
         <Navbar />
-        <div className="form-management-heading">
-          <strong>Anasayfa</strong>
-          <span>| Hoş Geldin!</span>
-        </div>
         {content}
       </div>
     </div>
