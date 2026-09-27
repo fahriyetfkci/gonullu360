@@ -4,7 +4,7 @@ Gönüllü 360; PostgreSQL tabanlı bir backend ve Vite ile çalışan React fro
 
 ## Gereksinimler
 
-- Node.js 20 veya üzeri
+- Node.js 20.19 veya üzeri ya da Node.js 22.12 veya üzeri
 - npm
 - PostgreSQL
 
@@ -78,8 +78,15 @@ npm install
 npx prisma generate
 npx prisma migrate deploy
 npm run seed
+npm run demo:import
 npm run dev
 ```
+
+`npm run seed` demo organizasyonunu ve giriş yapılacak yönetici hesabını oluşturur.
+Ardından `npm run demo:import`, `prisma/demo-snapshot.json` içindeki mevcut demo
+gönüllülerini, başvuruları, etkinlikleri, katılımcıları, bildirimleri ve 81 ilin
+harita/eğitim verilerini yükler. Bu komut yalnızca demo/geliştirme ortamında
+çalışır; production veritabanında çalıştırılamaz.
 
 Başarılı olduğunda terminalde aşağıdakine benzer bir kayıt görülür:
 
