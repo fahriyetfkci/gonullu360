@@ -169,6 +169,19 @@ npm run build
 npm test
 ```
 
+## Demo veri snapshot'ı
+
+Yerel demo veritabanındaki gönüllü, başvuru, etkinlik, katılımcı, etkinlik görevi,
+bildirim ve 81 il eğitim istatistiği kayıtlarının dışa aktarılmış hali
+`prisma/demo-snapshot.json` dosyasındadır. Snapshot gizli ortam değişkenlerini,
+oturum tokenlarını veya parolaları içermez.
+
+Mevcut demo verilerini yeniden dışa aktarmak için:
+
+```bash
+npm run demo:export
+```
+
 ## Üretim ortamı
 
 Production modunda aşağıdaki alanlar zorunludur:
