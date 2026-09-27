@@ -8,7 +8,6 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "seed": "ts-node src/db/seed.ts",
-    "demo:export": "ts-node --project tsconfig.scripts.json scripts/export-demo-snapshot.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "capacity:check": "npm run build && node scripts/capacity-check.js",
