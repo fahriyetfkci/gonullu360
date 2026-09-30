@@ -9,6 +9,7 @@ const FormBuilderFeature = lazy(() => import('./features/form-builder/FormBuilde
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
 const EventDetailPage = lazy(() => import('./pages/EventDetailPage'));
+const DataEntryPage = lazy(() => import('./pages/DataEntryPage'));
 
 const PageLoading = () => <div style={{minHeight:'100vh',display:'grid',placeItems:'center',color:'#7f8b92'}}>Yükleniyor…</div>;
 
@@ -34,6 +35,10 @@ function App() {
 
     if (pageFromHash === "security") {
       return "security";
+    }
+
+    if (pageFromHash === "data-entry") {
+      return "data-entry";
     }
 
     if (pageFromHash === "events" || pageFromHash.startsWith("events/")) {
@@ -81,6 +86,10 @@ function App() {
 
   if (currentPage === "security") {
     page = <SecurityPage />;
+  }
+
+  if (currentPage === "data-entry") {
+     page = <DataEntryPage />;
   }
 
   if (currentPage === "events") {
