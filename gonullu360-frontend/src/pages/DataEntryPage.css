@@ -1,0 +1,215 @@
+.data-entry-page {
+  display: flex;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.data-entry-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.data-entry-content {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding-top: 85px;
+}
+
+.data-entry-content h1 {
+  margin: 0;
+  color: #555555;
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.data-entry-description {
+  margin: 105px 0 28px;
+  color: #666666;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Gerçek dosya input'u görünmez.
+   Dosya seçimi yükleme alanına tıklanarak yapılır. */
+.data-entry-file-input {
+  display: none;
+}
+
+.data-entry-upload-area {
+  width: 520px;
+  height: 125px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid #8f8f8f;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #666666;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.data-entry-upload-area:hover {
+  border-color: #707070;
+}
+
+.data-entry-upload-area:focus-visible {
+  outline: 2px solid #00a98f;
+  outline-offset: 3px;
+}
+
+/* Kullanıcı dosyayı kutunun üzerine sürüklediğinde */
+.data-entry-upload-area-dragging {
+  border-color: #00a98f;
+  background-color: #f3fbf9;
+}
+
+.data-entry-upload-icon {
+  width: 28px;
+  height: 27px;
+  margin-bottom: 10px;
+  border: 2px solid #666666;
+  border-top: none;
+  border-radius: 2px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.data-entry-upload-icon span {
+  position: absolute;
+  top: -15px;
+  padding: 0 3px;
+  background-color: #ffffff;
+  color: #666666;
+  font-size: 26px;
+  line-height: 26px;
+}
+
+.data-entry-upload-area-dragging .data-entry-upload-icon span {
+  background-color: #f3fbf9;
+}
+
+.data-entry-upload-text {
+  color: #666666;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.data-entry-selected-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 90%;
+  gap: 8px;
+}
+
+.data-entry-file-name {
+  max-width: 390px;
+  overflow: hidden;
+  color: #666666;
+  font-size: 17px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-entry-remove-file {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #777777;
+  font-family: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.data-entry-remove-file:hover {
+  background-color: #f1f1f1;
+  color: #444444;
+}
+
+.data-entry-feedback {
+  width: 520px;
+  min-height: 24px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.data-entry-error {
+  margin: 7px 0 0;
+  color: #c0392b;
+  font-size: 13px;
+}
+
+.data-entry-example-button {
+  margin-top: 81px;
+  padding: 10px 20px;
+  border: 1px solid #777777;
+  border-radius: 18px;
+  background-color: #ffffff;
+  color: #555555;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.data-entry-example-button:hover {
+  background-color: #f7f7f7;
+  text-decoration: none;
+}
+
+.data-entry-example-button:visited {
+  color: #555555;
+}
+
+.data-entry-example-button:focus-visible {
+  outline: 2px solid #00a98f;
+  outline-offset: 3px;
+}
+
+@media (max-width: 800px) {
+  .data-entry-content {
+    padding: 60px 20px 30px;
+  }
+
+  .data-entry-description {
+    margin-top: 70px;
+  }
+
+  .data-entry-upload-area,
+  .data-entry-feedback {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .data-entry-file-name {
+    max-width: 70vw;
+  }
+
+  .data-entry-example-button {
+    margin-top: 60px;
+  }
+}

@@ -66,7 +66,9 @@ export default function Sidebar() {
     if (pageFromHash === "volunteers") {
       return "volunteers";
     }
-
+    if (pageFromHash === "data-entry") {
+  return "data-entry";
+}
     if (pageFromHash === "forms") {
       return "forms";
     }
@@ -107,7 +109,10 @@ export default function Sidebar() {
       window.location.hash = "volunteers";
       return;
     }
-
+if (item.page === "data-entry") {
+  window.location.hash = "data-entry";
+  return;
+}
     if (item.page === "forms") {
       window.location.hash = "forms";
       return;
