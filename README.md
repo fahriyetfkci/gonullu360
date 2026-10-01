@@ -2,6 +2,16 @@
 
 Gönüllü 360; PostgreSQL tabanlı bir backend ve Vite ile çalışan React frontend uygulamasından oluşur.
 
+## Özellikler
+
+- Gönüllü ve başvuru listeleme, filtreleme, sıralama ve sayfalama
+- Türkiye haritası üzerinden il bazlı gönüllü ve eğitim verileri
+- Etkinlik oluşturma, düzenleme, gruplama, filtreleme, arşivleme ve poster yönetimi
+- Form oluşturma, taslak kaydetme, yayınlama, yanıt ve dosya toplama
+- Profil, bildirim tercihleri ve kullanıcı yönetimi ekranları
+- Excel şablonu indirme, dosya seçme ve istemci tarafında dosya doğrulama
+- Demo verilerini taşımak için güvenli snapshot içe aktarma mekanizması
+
 ## Gereksinimler
 
 - Node.js 20.19 veya üzeri ya da Node.js 22.12 veya üzeri
@@ -82,6 +92,10 @@ npm run demo:import
 npm run dev
 ```
 
+`npx prisma migrate deploy`, mevcut veritabanına hesap ayarları, eğitim düzeyi ve
+etkinlik yönetimi için gereken tüm yeni şema değişikliklerini sırasıyla uygular.
+Yeni bir kurulumda migrasyon dosyalarını tek tek çalıştırmanız gerekmez.
+
 `npm run seed` demo organizasyonunu ve giriş yapılacak yönetici hesabını oluşturur.
 Ardından `npm run demo:import`, `prisma/demo-snapshot.json` içindeki mevcut demo
 gönüllülerini, başvuruları, etkinlikleri, katılımcıları, bildirimleri ve 81 ilin
@@ -142,6 +156,29 @@ Tarayıcı otomatik açılmazsa şu adresi ziyaret edin:
 http://localhost:3000
 ```
 
+## Veri Girişi ekranı
+
+Veri Girişi sayfasından örnek Excel dosyası indirilebilir ve uygun uzantıdaki bir
+dosya seçilebilir. Mevcut sürüm dosyayı istemci tarafında seçip doğrular; Excel
+içeriğini backend'de işleyerek gönüllü kayıtlarına otomatik aktarma işlemi henüz
+uygulanmamıştır. Bu nedenle dosya seçilmesi veritabanında kayıt oluşturmaz.
+
+## Dosya yükleme ve güvenlik kuralları
+
+- Etkinlik posterlerinde yalnızca içeriği gerçekten PNG veya JPEG olan dosyalar kabul edilir.
+- Poster dosyalarının azami boyutu 5 MB'dir; yalnızca dosya uzantısına veya tarayıcının bildirdiği MIME türüne güvenilmez.
+- Profil fotoğrafı PNG/JPEG biçiminde doğrulanmış bir base64 veri adresi olmalı ve 1 MB'ı geçmemelidir.
+- Profildeki web sitesi adresi yalnızca geçerli `http` veya `https` adresi olabilir.
+- Form yanıtı dosyaları `UPLOAD_DIR` altında, etkinlik posterleri ise `storage/event-posters` altında saklanır.
+- `storage/` Git deposuna eklenmez. Üretimde bu dizin kalıcı, erişimi sınırlandırılmış ve yedeklenen bir depolama alanına bağlanmalıdır.
+
+## Kimlik yapısı
+
+Etkinlik ve form kayıtlarında mevcut verilerle ve ilişkilerle uyumu korumak için
+sayısal birincil anahtarlar kullanılmaktadır. Kaynaklara erişim yalnızca kimliğin
+tahmin edilemez olmasına bırakılmaz; organizasyon kapsamı, oturum ve yetki
+kontrolleri backend tarafından uygulanır.
+
 ## Demo yönetici hesabı
 
 Seed işlemi aşağıdaki yönetici hesabını oluşturur:
@@ -186,7 +223,7 @@ Production modunda aşağıdaki alanlar zorunludur:
 - `REDIS_URL`
 - SMTP sunucu bilgileri
 - Gerçek frontend ve CORS adresleri
-- Kalıcı ve yedeklenen dosya depolama alanı
+- `storage/form-uploads` ve `storage/event-posters` için kalıcı ve yedeklenen dosya depolama alanı
 
 Üretimde demo şifreleri veya `.env.example` içindeki örnek değerler kullanılmamalıdır.
 
