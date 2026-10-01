@@ -130,7 +130,8 @@ export async function getDashboardRange(startYear: number, endYear: number, orga
     SELECT EXTRACT(YEAR FROM created_at)::int AS "year",
            city, gender, COUNT(*) AS "count"
     FROM volunteers
-    WHERE organization_id = ${organizationId} AND EXTRACT(YEAR FROM created_at) <= ${endYear}
+    WHERE organization_id = ${organizationId}
+      AND EXTRACT(YEAR FROM created_at) BETWEEN ${startYear} AND ${endYear}
     GROUP BY 1, 2, 3
     ORDER BY 1`;
 
@@ -140,21 +141,14 @@ export async function getDashboardRange(startYear: number, endYear: number, orga
     byYear.get(row.year)!.push(row);
   }
 
-  const gender: Record<string, number> = { Erkek: 0, Kadın: 0 };
-  const region: Record<string, number> = {};
-  let total = 0;
-  for (const row of rows.filter((item: RangeRow) => item.year < startYear)) {
-    const count = toNumber(row.count);
-    total += count;
-    gender[row.gender] = (gender[row.gender] ?? 0) + count;
-    region[row.city] = (region[row.city] ?? 0) + count;
-  }
-
   return {
     startYear,
     endYear,
     data: Array.from({ length: endYear - startYear + 1 }, (_, index: number) => {
       const year = startYear + index;
+      const gender: Record<string, number> = { Erkek: 0, Kadın: 0 };
+      const region: Record<string, number> = {};
+      let total = 0;
       for (const row of byYear.get(year) ?? []) {
         const count = toNumber(row.count);
         total += count;

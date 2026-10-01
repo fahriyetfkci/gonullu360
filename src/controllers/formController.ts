@@ -167,8 +167,10 @@ router.post('/:id/submissions', uploadSubmissionFiles, async (req, res) => {
 });
 
 router.get('/', ...managerOnly, async (req: AuthRequest, res: Response) => {
+  const status = String(req.query.status || '');
+  if (status && !['draft', 'published'].includes(status)) return res.status(400).json({ error: 'Geçersiz form durumu' });
   const items = await prisma.form.findMany({
-    where: { organizationId: req.user!.organizationId },
+    where: { organizationId: req.user!.organizationId, ...(status ? { status } : {}) },
     orderBy: { updatedAt: 'desc' },
     include: { _count: { select: { submissions: true } } },
   });

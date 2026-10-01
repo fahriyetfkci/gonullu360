@@ -14,7 +14,7 @@ const seedUserPassword = config.seedUserPassword;
 
 const cities = ['İstanbul', 'Ankara', 'İzmir', 'Kocaeli', 'Bursa', 'Sivas', 'Antalya', 'Konya'];
 const genders = ['Erkek', 'Kadın'];
-const educationLevels = ['Lise', 'Üniversite', 'Lisans', 'Yüksek Lisans'];
+const educationLevels = ['Lise', 'Ön Lisans', 'Lisans', 'Yüksek Lisans'];
 const departments = ['Tanıtım ve Medya', 'Gençlik Çalışmaları', 'Sosyal Yardım', 'Eğitim', 'Arama Kurtarma', 'Organizasyon'];
 const interests = ['Psikososyal', 'Medya', 'Arama Kurtarma', 'Grafik Tasarım', 'Eğitim', 'Sosyal Yardım', 'Organizasyon', 'Gençlik'];
 const schools = ['İstanbul Üniversitesi', 'Marmara Üniversitesi', 'Ankara Üniversitesi', 'Anadolu Üniversitesi', 'Karadeniz Teknik Üniversitesi', 'Yıldız Teknik Üniversitesi'];

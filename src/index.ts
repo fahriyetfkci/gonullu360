@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -10,6 +11,7 @@ import notificationRoutes from './routes/notifications';
 import applicationRoutes from './routes/applications';
 import formRoutes from './routes/forms';
 import eventRoutes from './routes/events';
+import accountRoutes from './routes/account';
 import { config } from './config';
 import prisma from './db/prisma';
 import { hashPassword } from './security/password';
@@ -46,6 +48,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Request-ID'],
 }));
 app.use(express.json({ limit: '200kb' }));
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 app.use(cookieParser(config.cookieSecret));
 app.use(requestLogger);
 app.use('/api', createRateLimiter(config.rateLimitWindowMs, config.rateLimitMax));
@@ -69,6 +72,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/forms', formRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/account', accountRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

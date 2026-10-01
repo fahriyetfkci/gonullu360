@@ -11,15 +11,15 @@ export const openApiDocument = {
   openapi: '3.0.3',
   info: { title: 'Gönüllü 360 API', version: '1.2.0', description: 'PostgreSQL tabanlı yönetici paneli API sözleşmesi' },
   servers: [{ url: 'http://localhost:3001/api', description: 'Yerel geliştirme' }],
-  tags: ['Auth', 'Dashboard', 'Volunteers', 'Applications', 'Forms', 'Notifications'].map(name => ({ name })),
+  tags: ['Auth', 'Account', 'Dashboard', 'Volunteers', 'Applications', 'Events', 'Forms', 'Notifications'].map(name => ({ name })),
   components: {
     securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },
     schemas: {
       Error: { type: 'object', required: ['error'], properties: { error: { type: 'string' }, code: { type: 'string' } } },
       Pagination: { type: 'object', required: ['total', 'page', 'limit', 'totalPages'], properties: { total: { type: 'integer' }, page: { type: 'integer' }, limit: { type: 'integer' }, totalPages: { type: 'integer' } } },
       Login: { type: 'object', required: ['email', 'password'], properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', format: 'password' }, mfaCode: { type: 'string', pattern: '^\\d{6}$' }, backupCode: { type: 'string' } } },
-      VolunteerInput: { type: 'object', required: ['name', 'city', 'gender', 'age'], properties: { name: { type: 'string' }, city: { type: 'string' }, gender: { type: 'string' }, age: { type: 'integer' }, education: { type: 'string' }, active: { type: 'boolean' } } },
-      ApplicationInput: { type: 'object', required: ['name', 'city', 'gender', 'age'], properties: { name: { type: 'string' }, city: { type: 'string' }, gender: { type: 'string' }, age: { type: 'integer' }, education: { type: 'string' }, phone: { type: 'string' }, email: { type: 'string', format: 'email' }, address: { type: 'string' }, interests: { type: 'array', items: { type: 'string' } }, coverLetter: { type: 'string' } } },
+      VolunteerInput: { type: 'object', required: ['name', 'city', 'gender', 'age'], properties: { name: { type: 'string' }, city: { type: 'string' }, gender: { type: 'string' }, age: { type: 'integer' }, education: { type: 'string', enum: ['Lise', 'Ön Lisans', 'Lisans', 'Yüksek Lisans'] }, active: { type: 'boolean' } } },
+      ApplicationInput: { type: 'object', required: ['name', 'city', 'gender', 'age'], properties: { name: { type: 'string' }, city: { type: 'string' }, gender: { type: 'string' }, age: { type: 'integer' }, education: { type: 'string', enum: ['Lise', 'Ön Lisans', 'Lisans', 'Yüksek Lisans'] }, phone: { type: 'string' }, email: { type: 'string', format: 'email' }, address: { type: 'string' }, interests: { type: 'array', items: { type: 'string' } }, coverLetter: { type: 'string' } } },
       FormSchema: { type: 'object', required: ['schemaVersion', 'id', 'title', 'sections'], additionalProperties: true },
       Answers: { type: 'object', required: ['answers'], properties: { answers: { type: 'object', additionalProperties: true } } },
       EducationInstitutionCounts: { type: 'object', required: ['universities', 'middleSchools', 'highSchools', 'vocationalHighSchools'], properties: { universities: { type: 'integer', minimum: 0 }, middleSchools: { type: 'integer', minimum: 0 }, highSchools: { type: 'integer', minimum: 0 }, vocationalHighSchools: { type: 'integer', minimum: 0 } } },
@@ -42,8 +42,13 @@ export const openApiDocument = {
     '/auth/mfa/setup': { post: { tags: ['Auth'], summary: 'MFA kurulumu başlatır', security: bearer, responses: { '200': { description: 'Kurulum bilgileri' } } } },
     '/auth/mfa/enable': { post: { tags: ['Auth'], summary: 'MFA özelliğini etkinleştirir', security: bearer, responses: { '200': { description: 'MFA etkin' }, '400': { description: 'Kod geçersiz' } } } },
     '/auth/mfa/disable': { post: { tags: ['Auth'], summary: 'MFA özelliğini kapatır', security: bearer, responses: { '200': { description: 'MFA kapatıldı' }, '401': { description: 'Şifre hatalı' } } } },
+    '/account/profile': {
+      get: { tags: ['Account'], summary: 'Oturumdaki yöneticinin profil ve bildirim tercihlerini getirir', security: bearer, responses: { '200': { description: 'Profil bilgileri' }, '401': { description: 'Oturum gerekli' } } },
+      put: { tags: ['Account'], summary: 'Profil ve bildirim tercihlerini günceller', security: bearer, responses: { '200': { description: 'Profil güncellendi' }, '422': { description: 'Bilgiler geçersiz' } } },
+    },
+    '/account/users': { get: { tags: ['Account'], summary: 'Organizasyondaki kullanıcıları listeler', security: bearer, responses: { '200': { description: 'Kullanıcı listesi' }, '403': { description: 'Yönetici yetkisi gerekli' } } } },
     '/dashboard/stats': { get: { tags: ['Dashboard'], summary: 'Bir yılın dashboard metriklerini getirir', parameters: [{ name: 'year', in: 'query', schema: { type: 'integer', minimum: 2000, maximum: 2100 } }], responses: { '200': { description: 'Dashboard verisi' }, '400': { description: 'Yıl geçersiz' } } } },
-    '/dashboard/range': { get: { tags: ['Dashboard'], summary: 'Yıl aralığındaki gönüllü toplamlarını getirir', parameters: [{ name: 'startYear', in: 'query', schema: { type: 'integer' } }, { name: 'endYear', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'Yıllık seri' } } } },
+    '/dashboard/range': { get: { tags: ['Dashboard'], summary: 'Yıl aralığındaki yıllık yeni gönüllü sayılarını getirir', parameters: [{ name: 'startYear', in: 'query', schema: { type: 'integer' } }, { name: 'endYear', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'Yıllık seri' } } } },
     '/volunteers': {
       get: { tags: ['Volunteers'], summary: 'Gönüllüleri filtreli ve sayfalı getirir', parameters: [...pages, { name: 'search', in: 'query', schema: { type: 'string' } }, { name: 'city', in: 'query', schema: { type: 'string' } }, { name: 'gender', in: 'query', schema: { type: 'string' } }, { name: 'ageRange', in: 'query', schema: { type: 'string' } }], responses: { '200': { description: 'Gönüllü listesi' } } },
       post: { tags: ['Volunteers'], summary: 'Gönüllü oluşturur', security: bearer, requestBody: jsonBody({ $ref: '#/components/schemas/VolunteerInput' }), responses: { '201': { description: 'Oluşturuldu' }, '403': { description: 'Yönetici yetkisi gerekli' } } },
@@ -75,6 +80,16 @@ export const openApiDocument = {
       delete: { tags: ['Applications'], summary: 'Başvuruyu siler', security: bearer, parameters: [id('Başvuru numarası')], responses: { '200': { description: 'Silindi' } } },
     },
     '/applications/{id}/status': { put: { tags: ['Applications'], summary: 'Başvuru durumunu değiştirir', security: bearer, parameters: [id('Başvuru numarası')], requestBody: jsonBody({ type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['İşlem Bekliyor', 'Reddedildi', 'Aktif Gönüllü'] } } }), responses: { '200': { description: 'Durum güncellendi' } } } },
+    '/events': {
+      get: { tags: ['Events'], summary: 'Organizasyonun etkinliklerini listeler', security: bearer, responses: { '200': { description: 'Etkinlik listesi' } } },
+      post: { tags: ['Events'], summary: 'Yeni etkinlik oluşturur', security: bearer, responses: { '201': { description: 'Etkinlik oluşturuldu' }, '422': { description: 'Bilgiler geçersiz' } } },
+    },
+    '/events/poster': { post: { tags: ['Events'], summary: 'Etkinlik posteri yükler', security: bearer, requestBody: { required: true, content: { 'multipart/form-data': { schema: { type: 'object', required: ['poster'], properties: { poster: { type: 'string', format: 'binary' } } } } } }, responses: { '201': { description: 'Poster yüklendi' }, '400': { description: 'Dosya geçersiz' } } } },
+    '/events/{id}': {
+      get: { tags: ['Events'], summary: 'Etkinlik ayrıntısını getirir', security: bearer, parameters: [id('Etkinlik numarası')], responses: { '200': { description: 'Etkinlik ayrıntısı' }, '404': { description: 'Bulunamadı' } } },
+      put: { tags: ['Events'], summary: 'Etkinliği günceller', security: bearer, parameters: [id('Etkinlik numarası')], responses: { '200': { description: 'Etkinlik güncellendi' } } },
+      delete: { tags: ['Events'], summary: 'Etkinliği siler', security: bearer, parameters: [id('Etkinlik numarası')], responses: { '200': { description: 'Etkinlik silindi' } } },
+    },
     '/notifications': {
       get: { tags: ['Notifications'], summary: 'Oturumdaki yöneticinin bildirimlerini getirir', security: bearer, parameters: pages, responses: { '200': { description: 'Bildirim listesi, sayfalama ve okunmamış toplam' }, '403': { description: 'Yönetici yetkisi gerekli' } } },
       post: { tags: ['Notifications'], summary: 'Oturumdaki yönetici için bildirim oluşturur', security: bearer, requestBody: jsonBody({ type: 'object', required: ['message'], properties: { message: { type: 'string' } } }), responses: { '201': { description: 'Bildirim oluşturuldu' } } },

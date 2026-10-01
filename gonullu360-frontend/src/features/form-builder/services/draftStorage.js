@@ -104,6 +104,14 @@ function clearSelectedForm(formId) {
   localStorage.removeItem(current.remoteRevision);
 }
 
+function startNewDraft() {
+  const current = keys();
+  localStorage.removeItem(current.draft);
+  localStorage.removeItem(current.published);
+  localStorage.removeItem(current.remoteForm);
+  localStorage.removeItem(current.remoteRevision);
+}
+
 async function publishForm(schema) {
   const previous=loadPublishedForm();
   const remote=await saveRemoteSchema(schema);
@@ -113,4 +121,4 @@ async function publishForm(schema) {
   return published;
 }
 
-export { clearSelectedForm, loadDraft, loadPublishedForm, publishForm, saveDraft, selectFormForEditing };
+export { clearSelectedForm, loadDraft, loadPublishedForm, publishForm, saveDraft, selectFormForEditing, startNewDraft };

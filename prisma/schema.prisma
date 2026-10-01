@@ -12,6 +12,13 @@ enum Role {
   VOLUNTEER
 }
 
+enum EventStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+  ARCHIVED
+}
+
 model User {
   id                  String    @id @default(cuid())
   organizationId      String    @map("organization_id")
@@ -27,19 +34,28 @@ model User {
   mfaEnabled          Boolean   @default(false) @map("mfa_enabled")
   mfaSecret           String?   @map("mfa_secret")
   backupCodesHash     String?   @map("backup_codes_hash")
+  phone               String?
+  website             String?
+  jobTitle            String?   @map("job_title")
+  about               String?
+  address             String?
+  photoUrl            String?   @map("photo_url")
+  emailNotifications  Boolean   @default(true) @map("email_notifications")
+  systemNotifications Boolean   @default(true) @map("system_notifications")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  organization          Organization         @relation(fields: [organizationId], references: [id])
-  notifications         Notification[]
-  managerNotesAuthored  VolunteerProfile[]   @relation("ManagerNoteAuthor")
-  formsCreated          Form[]               @relation("FormCreatedBy")
-  formVersionsPublished FormVersion[]        @relation("FormPublishedBy")
-  formSubmissions       FormSubmission[]
-  refreshSessions       RefreshSession[]
-  passwordResetTokens   PasswordResetToken[]
+  organization            Organization             @relation(fields: [organizationId], references: [id])
+  notifications           Notification[]
+  managerNotesAuthored    VolunteerProfile[]       @relation("ManagerNoteAuthor")
+  formsCreated            Form[]                   @relation("FormCreatedBy")
+  formVersionsPublished   FormVersion[]            @relation("FormPublishedBy")
+  formSubmissions         FormSubmission[]
+  refreshSessions         RefreshSession[]
+  passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
-  auditLogs             AuditLog[]
+  auditLogs               AuditLog[]
+  eventsCreated           Event[]                  @relation("EventCreatedBy")
 
   @@unique([organizationId, email])
   @@index([organizationId])
@@ -88,6 +104,7 @@ model Organization {
   events        Event[]
   applications  Application[]
   notifications Notification[]
+  eventGroups   EventGroup[]
 
   @@map("organizations")
 }
@@ -136,7 +153,7 @@ model Volunteer {
   city           String
   gender         String
   age            Int
-  education      String   @default("Üniversite")
+  education      String   @default("Ön Lisans")
   active         Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
 
@@ -158,27 +175,74 @@ model Volunteer {
 }
 
 model Event {
-  id             Int      @id @default(autoincrement())
-  organizationId String   @map("organization_id")
-  name           String
-  date           DateTime @db.Date
-  target         Int      @default(0)
-  completed      Boolean  @default(false)
-  time           String?  @default("13:00")
-  groupName      String?  @map("group_name")
-  imageUrl       String?  @map("image_url")
-  notes          String?
+  id                 Int         @id @default(autoincrement())
+  organizationId     String      @map("organization_id")
+  name               String
+  date               DateTime    @db.Date
+  target             Int         @default(0)
+  completed          Boolean     @default(false)
+  time               String?     @default("13:00")
+  groupName          String?     @map("group_name")
+  imageUrl           String?     @map("image_url")
+  notes              String?
+  slug               String?
+  endTime            String?     @map("end_time")
+  type               String      @default("IN_PERSON")
+  address            String?
+  capacity           Int?
+  contactInfo        String?     @map("contact_info")
+  description        String?
+  status             EventStatus @default(SCHEDULED)
+  startsAt           DateTime?   @map("starts_at")
+  endsAt             DateTime?   @map("ends_at")
+  timezone           String      @default("Europe/Istanbul")
+  posterStorageKey   String?     @map("poster_storage_key")
+  createdById        String?     @map("created_by_id")
+  registrationFormId Int?        @map("registration_form_id")
 
-  participants EventParticipant[]
-  tasks        EventTask[]
-  report       EventReport?
-  organization Organization       @relation(fields: [organizationId], references: [id])
+  participants     EventParticipant[]
+  tasks            EventTask[]
+  report           EventReport?
+  organization     Organization           @relation(fields: [organizationId], references: [id])
+  createdBy        User?                  @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  registrationForm Form?                  @relation(fields: [registrationFormId], references: [id], onDelete: SetNull)
+  groups           EventGroupAssignment[]
 
+  @@unique([organizationId, slug])
   @@index([date])
   @@index([completed, date])
   @@index([organizationId, date])
   @@index([organizationId, completed, date])
   @@map("events")
+}
+
+model EventGroup {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  name           String
+  color          String
+  memberCount    Int      @default(0) @map("member_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events       EventGroupAssignment[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, name])
+  @@map("event_groups")
+}
+
+model EventGroupAssignment {
+  eventId Int    @map("event_id")
+  groupId String @map("group_id")
+
+  event Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group EventGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, groupId])
+  @@index([groupId])
+  @@map("event_group_assignments")
 }
 
 model EventReport {
@@ -247,7 +311,7 @@ model Application {
   city           String
   gender         String
   age            Int
-  education      String       @default("Üniversite")
+  education      String       @default("Ön Lisans")
   status         String       @default("İşlem Bekliyor")
   phone          String?
   email          String?
@@ -318,21 +382,21 @@ model VolunteerEducation {
 }
 
 model EducationInstitutionStat {
-  id                    Int      @id @default(autoincrement())
-  city                  String   @unique
-  studentCount          Int      @default(0) @map("student_count")
+  id                    Int       @id @default(autoincrement())
+  city                  String    @unique
+  studentCount          Int       @default(0) @map("student_count")
   universities          Int
-  middleSchools         Int      @map("middle_schools")
-  highSchools           Int      @map("high_schools")
-  vocationalHighSchools Int      @map("vocational_high_schools")
+  middleSchools         Int       @map("middle_schools")
+  highSchools           Int       @map("high_schools")
+  vocationalHighSchools Int       @map("vocational_high_schools")
   period                String
-  mebSource             String   @map("meb_source")
-  yokSource             String   @map("yok_source")
-  syncStatus            String   @default("success") @map("sync_status")
-  syncError             String?  @map("sync_error")
+  mebSource             String    @map("meb_source")
+  yokSource             String    @map("yok_source")
+  syncStatus            String    @default("success") @map("sync_status")
+  syncError             String?   @map("sync_error")
   lastAttemptAt         DateTime? @map("last_attempt_at")
-  syncedAt              DateTime @map("synced_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  syncedAt              DateTime  @map("synced_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   @@map("education_institution_stats")
 }
@@ -352,10 +416,11 @@ model Form {
   updatedAt      DateTime  @updatedAt @map("updated_at")
   publishedAt    DateTime? @map("published_at")
 
-  organization Organization     @relation(fields: [organizationId], references: [id])
-  createdBy    User             @relation("FormCreatedBy", fields: [createdById], references: [id])
-  versions     FormVersion[]
-  submissions  FormSubmission[]
+  organization       Organization     @relation(fields: [organizationId], references: [id])
+  createdBy          User             @relation("FormCreatedBy", fields: [createdById], references: [id])
+  versions           FormVersion[]
+  submissions        FormSubmission[]
+  registrationEvents Event[]
 
   @@unique([organizationId, clientFormId])
   @@index([status, updatedAt])
@@ -388,8 +453,8 @@ model FormSubmission {
   submittedBy String?  @map("submitted_by")
   submittedAt DateTime @default(now()) @map("submitted_at")
 
-  form Form  @relation(fields: [formId], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [submittedBy], references: [id], onDelete: SetNull)
+  form  Form                 @relation(fields: [formId], references: [id], onDelete: Cascade)
+  user  User?                @relation(fields: [submittedBy], references: [id], onDelete: SetNull)
   files FormSubmissionFile[]
 
   @@index([formId, submittedAt])

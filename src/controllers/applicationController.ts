@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../db/prisma';
 import { authMiddleware, requireManager } from '../middleware/auth';
 import { organizationContext, OrganizationRequest } from '../middleware/organization';
+import { normalizeEducationLevel } from '../utils/education';
 
 const router = Router();
 router.use(organizationContext);
@@ -51,7 +52,7 @@ router.put('/:id/status',authMiddleware,requireManager,async(req:OrganizationReq
   const application=await prisma.application.findFirst({where:{id,organizationId:req.organizationId!}}); if(!application)return res.status(404).json({error:'Başvuru bulunamadı'});
   if(status==='Aktif Gönüllü'){
     const volunteerId=await prisma.$transaction(async tx=>{
-      const volunteer=await tx.volunteer.create({data:{organizationId:req.organizationId!,name:application.name,city:application.city,gender:application.gender,age:application.age,education:application.education,active:true}});
+      const volunteer=await tx.volunteer.create({data:{organizationId:req.organizationId!,name:application.name,city:application.city,gender:application.gender,age:application.age,education:normalizeEducationLevel(application.education),active:true}});
       await tx.volunteerProfile.create({data:{volunteerId:volunteer.id,volunteerCode:`#${String(volunteer.id).padStart(5,'0')}`,birthDate:new Date(Date.UTC(new Date().getUTCFullYear()-application.age,0,1)),phone:application.phone,email:application.email,address:application.address,coverLetter:application.coverLetter}});
       const interests=application.interests?JSON.parse(application.interests):[]; if(Array.isArray(interests)&&interests.length)await tx.volunteerInterest.createMany({data:interests.map((interest:unknown)=>({volunteerId:volunteer.id,interest:String(interest)})),skipDuplicates:true});
       await tx.application.delete({where:{id}}); return volunteer.id;
@@ -63,7 +64,7 @@ router.put('/:id/status',authMiddleware,requireManager,async(req:OrganizationReq
 
 router.post('/',async(req:OrganizationRequest,res)=>{
   const {name,city,gender,age,education,phone,email,address,interests,coverLetter}=req.body; if(!name||!city||!gender||!age)return res.status(400).json({error:'Tüm alanlar zorunludur'});
-  const created=await prisma.application.create({data:{organizationId:req.organizationId!,name:String(name),city:String(city),gender:String(gender),age:Number(age),education:String(education||'Üniversite'),phone:phone||null,email:email||null,address:address||null,interests:Array.isArray(interests)?JSON.stringify(interests):null,coverLetter:coverLetter||null}}); return res.status(201).json(applicationDto(created));
+  const created=await prisma.application.create({data:{organizationId:req.organizationId!,name:String(name),city:String(city),gender:String(gender),age:Number(age),education:normalizeEducationLevel(education),phone:phone||null,email:email||null,address:address||null,interests:Array.isArray(interests)?JSON.stringify(interests):null,coverLetter:coverLetter||null}}); return res.status(201).json(applicationDto(created));
 });
 
 router.delete('/:id',authMiddleware,requireManager,async(req:OrganizationRequest,res)=>{

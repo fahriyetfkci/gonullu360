@@ -6,6 +6,7 @@ import { organizationContext, OrganizationRequest } from '../middleware/organiza
 import { EDUCATION_INSTITUTION_PERIOD, educationInstitutionStats } from '../data/educationInstitutionStats';
 import { syncEducationInstitutionStats } from '../services/educationStatsSync';
 import { educationSyncResponseSchema, volunteerMapResponseSchema } from '../schemas/volunteerMap';
+import { normalizeEducationLevel } from '../utils/education';
 
 const router = Router();
 router.use(organizationContext);
@@ -41,7 +42,11 @@ router.get('/grouped', async (req: OrganizationRequest, res) => {
   const { page, limit, skip } = pageParams(req, 50);
   const search = String(req.query.search || '');
   const status = String(req.query.status || '');
-  const education = String(req.query.education || '');
+  const rawEducation = String(req.query.education || '');
+  const education = rawEducation ? normalizeEducationLevel(rawEducation) : '';
+  const sortField = String(req.query.sortField || 'applicationDate');
+  const sortColumn = sortField === 'fullName' ? 'name' : 'date';
+  const sortDirection = String(req.query.sortDirection || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
   const startDate = req.query.startDate ? new Date(`${req.query.startDate}T00:00:00Z`) : null;
   const endDate = req.query.endDate ? new Date(`${req.query.endDate}T23:59:59Z`) : null;
   const includeVolunteers = !status || status === 'Aktif Gönüllü';
@@ -53,19 +58,29 @@ router.get('/grouped', async (req: OrganizationRequest, res) => {
     return `$${values.length}`;
   };
   const conditions = (statusExpression: string) => {
-    const searchParam = parameter(`%${search}%`);
+    const searchParam = parameter(`${search}%`);
     const clauses = [`organization_id = ${parameter(req.organizationId!)}`, `(name ILIKE ${searchParam} OR education ILIKE ${searchParam} OR ${statusExpression} ILIKE ${searchParam})`];
     if (education) clauses.push(`education = ${parameter(education)}`);
     if (startDate) clauses.push(`created_at >= ${parameter(startDate)}`);
     if (endDate) clauses.push(`created_at <= ${parameter(endDate)}`);
     return clauses.join(' AND ');
   };
+  const relevance = (statusExpression: string) => {
+    if (!search) return '0';
+    const prefixParam = parameter(`${search}%`);
+    return `CASE
+      WHEN name ILIKE ${prefixParam} THEN 0
+      WHEN education ILIKE ${prefixParam} THEN 1
+      WHEN ${statusExpression} ILIKE ${prefixParam} THEN 2
+      ELSE 3
+    END`;
+  };
 
   const parts: string[] = [];
   if (includeVolunteers) {
     parts.push(`
       SELECT 'volunteer_' || id AS key, name, education, created_at AS date,
-             'Aktif Gönüllü' AS status
+             'Aktif Gönüllü' AS status, ${relevance("'Aktif Gönüllü'")} AS relevance
       FROM volunteers
       WHERE ${conditions("'Aktif Gönüllü'")}`);
   }
@@ -73,7 +88,8 @@ router.get('/grouped', async (req: OrganizationRequest, res) => {
     let applicationConditions = conditions('status');
     if (status) applicationConditions += ` AND status = ${parameter(status)}`;
     parts.push(`
-      SELECT 'application_' || id AS key, name, education, created_at AS date, status
+      SELECT 'application_' || id AS key, name, education, created_at AS date, status,
+             ${relevance('status')} AS relevance
       FROM applications
       WHERE ${applicationConditions}`);
   }
@@ -82,7 +98,13 @@ router.get('/grouped', async (req: OrganizationRequest, res) => {
   }
 
   const union = parts.join(' UNION ALL ');
-  const rowsQuery = `SELECT * FROM (${union}) AS grouped ORDER BY date DESC LIMIT ${parameter(limit)} OFFSET ${parameter(skip)}`;
+  const selectedOrder = sortColumn === 'name'
+    ? `name ${sortDirection}, date ASC, education ASC, key ASC`
+    : `date ${sortDirection}, name ASC, education ASC, key ASC`;
+  const orderBy = search
+    ? `relevance ASC, ${selectedOrder}`
+    : selectedOrder;
+  const rowsQuery = `SELECT key, name, education, date, status FROM (${union}) AS grouped ORDER BY ${orderBy} LIMIT ${parameter(limit)} OFFSET ${parameter(skip)}`;
   const volunteers = await prisma.$queryRawUnsafe<Array<{ key: string; name: string; education: string; date: Date; status: string }>>(rowsQuery, ...values);
 
   // LIMIT ve OFFSET parametreleri sayım sorgusuna ait değildir.
@@ -238,7 +260,7 @@ router.post('/:id/educations', authMiddleware, requireManager, async (req: Organ
   const { level, school, department = null, startYear = null, endYear = null, current = false } = req.body;
   if (!await prisma.volunteer.count({ where: { id: volunteerId, organizationId: req.organizationId! } })) return res.status(404).json({ error: 'Gönüllü bulunamadı' });
   if (!level || !school) return res.status(400).json({ error: 'level ve school zorunludur' });
-  const education = await prisma.volunteerEducation.create({ data: { volunteerId, level, school, department, startYear, endYear: current ? null : endYear, current: Boolean(current) } });
+  const education = await prisma.volunteerEducation.create({ data: { volunteerId, level: normalizeEducationLevel(level), school, department, startYear, endYear: current ? null : endYear, current: Boolean(current) } });
   return res.status(201).json(education);
 });
 
@@ -258,7 +280,7 @@ router.get('/:id', async (req: OrganizationRequest, res) => {
 router.post('/', authMiddleware, requireManager, async (req: OrganizationRequest, res) => {
   const { name, city, gender, age, education } = req.body;
   if (!name || !city || !gender || !age) return res.status(400).json({ error: 'Tüm alanlar zorunludur: name, city, gender, age' });
-  const created = await prisma.volunteer.create({ data: { organizationId: req.organizationId!, name, city, gender, age: Number(age), education: education || 'Üniversite' } });
+  const created = await prisma.volunteer.create({ data: { organizationId: req.organizationId!, name, city, gender, age: Number(age), education: normalizeEducationLevel(education) } });
   return res.status(201).json(volunteerDto(created));
 });
 
@@ -274,7 +296,7 @@ router.put('/:id', authMiddleware, requireManager, async (req: OrganizationReque
       ...(gender !== undefined ? { gender } : {}),
       ...(age !== undefined ? { age: Number(age) } : {}),
       ...(active !== undefined ? { active: Boolean(active) } : {}),
-      ...(education !== undefined ? { education } : {}),
+      ...(education !== undefined ? { education: normalizeEducationLevel(education) } : {}),
     },
   });
   return res.json(volunteerDto(updated));

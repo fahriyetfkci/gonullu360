@@ -43,7 +43,15 @@ export function AuthProvider({ children }) {
     finally { setUser(null); setStatus('anonymous'); window.location.hash = ''; }
   }, []);
 
-  const value = useMemo(() => ({ status, user, login, logout }), [status, user, login, logout]);
+  const updateUser = useCallback((changes) => {
+    setUser(current => {
+      const next = { ...current, ...changes };
+      localStorage.setItem('authUser', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const value = useMemo(() => ({ status, user, login, logout, updateUser, updateSessionProfile: updateUser }), [status, user, login, logout, updateUser]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

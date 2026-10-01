@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
@@ -25,6 +25,18 @@ export default function VolunteerListPage() {
   useEffect(() => {
     sessionStorage.setItem('volunteerActiveView', activeView);
   }, [activeView]);
+
+  useEffect(() => {
+    const clearVolunteerLocationWhenLeaving = () => {
+      const destination = window.location.hash.replace('#', '');
+      if (destination === 'volunteers') return;
+      sessionStorage.removeItem('volunteerActiveView');
+      sessionStorage.removeItem('volunteerMapFocusedCity');
+    };
+
+    window.addEventListener('hashchange', clearVolunteerLocationWhenLeaving);
+    return () => window.removeEventListener('hashchange', clearVolunteerLocationWhenLeaving);
+  }, []);
 
   useEffect(() => {
     if (activeMenuId === null) return undefined;
@@ -63,6 +75,8 @@ export default function VolunteerListPage() {
           education: selectedEducation,
           startDate,
           endDate,
+          sortField,
+          sortDirection,
           page,
           limit: PAGE_SIZE,
         });
@@ -82,7 +96,7 @@ export default function VolunteerListPage() {
       }
     };
     fetchData();
-  }, [searchText, selectedStatus, selectedEducation, startDate, endDate, page]);
+  }, [searchText, selectedStatus, selectedEducation, startDate, endDate, sortField, sortDirection, page]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -90,28 +104,7 @@ export default function VolunteerListPage() {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  // Artık sadece sıralama client-side yapılıyor - filtreleme backend'den geldiği için
-  // burada tekrar filtrelemeye gerek yok.
-  const sortedVolunteers = useMemo(() => {
-    return [...volunteerData].sort((firstVolunteer, secondVolunteer) => {
-      let comparison = 0;
-
-      if (sortField === "fullName") {
-        comparison = firstVolunteer.fullName.localeCompare(
-          secondVolunteer.fullName,
-          "tr-TR"
-        );
-      }
-
-      if (sortField === "applicationDate") {
-        comparison = firstVolunteer.applicationDate.localeCompare(
-          secondVolunteer.applicationDate
-        );
-      }
-
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-  }, [volunteerData, sortField, sortDirection]);
+  const sortedVolunteers = volunteerData;
 
   const clearFilters = () => {
     setSearchText("");
@@ -133,6 +126,7 @@ export default function VolunteerListPage() {
       setSortDirection("asc");
     }
 
+    setPage(1);
     setActiveMenuId(null);
   };
 
@@ -279,7 +273,7 @@ export default function VolunteerListPage() {
                 >
                   <option value="">Tümü</option>
                   <option value="Lise">Lise</option>
-                  <option value="Üniversite">Üniversite</option>
+                  <option value="Ön Lisans">Ön Lisans</option>
                   <option value="Lisans">Lisans</option>
                   <option value="Yüksek Lisans">Yüksek Lisans</option>
                 </select>

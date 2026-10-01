@@ -3,6 +3,7 @@ import path from 'path';
 import { Role } from '@prisma/client';
 import { config } from '../config';
 import prisma from './prisma';
+import { normalizeEducationLevel } from '../utils/education';
 
 type SnapshotVolunteer = {
   id: number; name: string; city: string; gender: string; age: number; education: string; active: boolean; createdAt: string;
@@ -75,7 +76,7 @@ async function main() {
   for (const volunteer of snapshot.volunteers) {
     const created = await prisma.volunteer.create({ data: {
       organizationId: organization.id, name: volunteer.name, city: volunteer.city, gender: volunteer.gender, age: volunteer.age,
-      education: volunteer.education, active: volunteer.active, createdAt: asDate(volunteer.createdAt),
+      education: normalizeEducationLevel(volunteer.education), active: volunteer.active, createdAt: asDate(volunteer.createdAt),
       profile: volunteer.profile ? { create: {
         volunteerCode: volunteer.profile.volunteerCode, birthDate: asOptionalDate(volunteer.profile.birthDate), department: volunteer.profile.department,
         phone: volunteer.profile.phone, email: volunteer.profile.email, address: volunteer.profile.address, photoUrl: volunteer.profile.photoUrl,
@@ -84,12 +85,12 @@ async function main() {
         managerNoteUpdatedAt: asOptionalDate(volunteer.profile.managerNoteUpdatedAt),
       } } : undefined,
       interests: { create: volunteer.interests.map(item => ({ interest: item.interest })) },
-      educations: { create: volunteer.educations.map(item => ({ level: item.level, school: item.school, department: item.department, startYear: item.startYear, endYear: item.endYear, current: item.current })) },
+      educations: { create: volunteer.educations.map(item => ({ level: normalizeEducationLevel(item.level), school: item.school, department: item.department, startYear: item.startYear, endYear: item.endYear, current: item.current })) },
     } });
     volunteerIdMap.set(volunteer.id, created.id);
   }
 
-  await prisma.application.createMany({ data: snapshot.applications.map(application => ({ organizationId: organization.id, ...application, createdAt: asDate(application.createdAt) })) });
+  await prisma.application.createMany({ data: snapshot.applications.map(application => ({ organizationId: organization.id, ...application, education: normalizeEducationLevel(application.education), createdAt: asDate(application.createdAt) })) });
 
   const eventIdMap = new Map<number, number>();
   for (const event of snapshot.events) {

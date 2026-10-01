@@ -79,6 +79,9 @@ export default function Sidebar() {
       return "events";
     }
 
+    if (pageFromHash === "data-entry") return "data-entry";
+    if (pageFromHash === "settings" || pageFromHash.startsWith("settings/")) return "settings";
+
 
     return "dashboard";
   };
@@ -120,6 +123,16 @@ export default function Sidebar() {
 
     if (item.page === "events") {
       window.location.hash = "events";
+      return;
+    }
+
+    if (item.page === "data-entry") {
+      window.location.hash = "data-entry";
+      return;
+    }
+
+    if (item.page === "settings") {
+      window.location.hash = "settings";
       return;
     }
 

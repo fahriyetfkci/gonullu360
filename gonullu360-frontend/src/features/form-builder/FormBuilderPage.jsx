@@ -106,7 +106,7 @@ function BuilderSection({
       </SortableContext>
     </section>;
 }
-function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) {
+function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack, onNewForm }) {
   const initialDraft = useMemo(() => loadDraft(), []);
   const initialSchema = useMemo(() => initialDraft?.schema ?? createEmptyForm(), [initialDraft]);
   const [schema, dispatch] = useReducer(formReducer, initialSchema);
@@ -117,9 +117,27 @@ function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) 
   const [selectedFieldId, setSelectedFieldId] = useState(null);
   const [activeLabel, setActiveLabel] = useState(null);
   const [message, setMessage] = useState(null);
+  const [messageFading, setMessageFading] = useState(false);
+  const messageTimers = useRef([]);
   const firstRender = useRef(true);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const selectedField = schema.sections.flatMap((section) => section.fields).find((field) => field.id === selectedFieldId);
+  useEffect(() => () => {
+    messageTimers.current.forEach((timer) => window.clearTimeout(timer));
+  }, []);
+
+  function showTemporaryMessage(text) {
+    messageTimers.current.forEach((timer) => window.clearTimeout(timer));
+    messageTimers.current = [];
+    setMessageFading(false);
+    setMessage(text);
+    messageTimers.current.push(window.setTimeout(() => setMessageFading(true), 2000));
+    messageTimers.current.push(window.setTimeout(() => {
+      setMessage(null);
+      setMessageFading(false);
+    }, 2600));
+  }
+
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -207,7 +225,19 @@ function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) 
                 <h1>Form Oluştur</h1>
                 <p>Alanları sürükleyip bölümlere bırakarak formunuzu hazırlayın.</p>
               </div>
-              <button className="form-tools-back" type="button" onClick={onBack}>← Form Araçlarına Dön</button>
+              <div className="builder-heading-actions">
+                <button className="form-tools-back" type="button" onClick={onBack}>← Form Araçlarına Dön</button>
+                <button
+                  className="new-form-button"
+                  type="button"
+                  onClick={() => {
+                    if (saveState === "dirty" && !window.confirm("Kaydedilmemiş değişiklikleriniz var. Yeni bir form oluşturmak istediğinize emin misiniz?")) return;
+                    onNewForm();
+                  }}
+                >
+                  <span aria-hidden="true">＋</span> Yeni form
+                </button>
+              </div>
             </header>
 
             <div className="form-name-card">
@@ -263,14 +293,14 @@ function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) 
               <span>{new Date(published.publishedAt).toLocaleString("tr-TR")}</span>
             </div>}
 
-          {message && <p className={`panel-message ${saveState === "error" ? "is-error" : ""}`}>{message}</p>}
+          {message && <p className={`panel-message ${saveState === "error" ? "is-error" : ""} ${messageFading ? "is-fading" : ""}`}>{message}</p>}
 
           <nav className="panel-actions">
             <button type="button" onClick={async () => {
     setMessage(null);
     try {
       await saveNow();
-      setMessage("Taslak başarıyla kaydedildi.");
+      showTemporaryMessage("Taslak başarıyla kaydedildi.");
     } catch (error) {
       setSaveState("error");
       setMessage(error.response?.data?.error || "Taslak kaydedilirken bir hata oluştu.");
@@ -282,7 +312,7 @@ function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) 
               <span>↗</span><div><strong>Yayınla</strong><small>Yeni bir sabit sürüm oluştur</small></div><b>›</b>
             </button>
             <button type="button" onClick={onManageForms}>
-              <span>☰</span><div><strong>Formları Yönet</strong><small>Formları görüntüle, düzenle veya sil</small></div><b>›</b>
+              <span>☰</span><div><strong>Taslaklar</strong><small>Kaydedilen taslakları görüntüle ve düzenle</small></div><b>›</b>
             </button>
             <button type="button" onClick={async () => {
     await saveNow();
@@ -293,9 +323,6 @@ function FormBuilderPage({ onPreview, onOpenPublished, onManageForms, onBack }) 
             {published && <button type="button" onClick={() => onOpenPublished(published)}>
                 <span>↗</span><div><strong>Yayındaki Form</strong><small>Sürüm {published.version} görünümünü aç</small></div><b>›</b>
               </button>}
-            <button type="button" onClick={onBack}>
-              <span>←</span><div><strong>Form Araçlarına Git</strong><small>Araçlar ekranına dön</small></div><b>›</b>
-            </button>
           </nav>
 
           <div className="panel-tip">

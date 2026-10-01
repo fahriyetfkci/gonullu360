@@ -1,12 +1,35 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { deleteForm, downloadSubmissionFile, getForms, getFormSubmissions } from "../../services/api";
 import { FormRenderer } from "./components/FormRenderer";
 import { createEmptyForm } from "./model/form.schema";
 import { FormBuilderPage } from "./FormBuilderPage";
-import { clearSelectedForm, loadDraft, loadPublishedForm, selectFormForEditing } from "./services/draftStorage";
+import { clearSelectedForm, loadDraft, loadPublishedForm, selectFormForEditing, startNewDraft } from "./services/draftStorage";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import "./form-builder.css";
+
+const FORM_VIEW_KEY = "gonullu360.form-builder.active-view";
+const FORM_SCOPE_KEY = "gonullu360.form-builder.management-scope";
+const FORM_RETURN_VIEW_KEY = "gonullu360.form-builder.return-view";
+const FORM_SELECTED_KEY = "gonullu360.form-builder.selected-form";
+const RESTORABLE_VIEWS = new Set(["tools", "builder", "manage", "preview", "published", "responses"]);
+
+function readSessionValue(key, fallback) {
+  try {
+    return sessionStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readSelectedForm() {
+  try {
+    const value = sessionStorage.getItem(FORM_SELECTED_KEY);
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
 
 const toolCards = [
   { id: "builder", label: "Form Oluştur", icon: "grid" },
@@ -31,33 +54,79 @@ function ToolIcon({ name }) {
 }
 
 export default function FormBuilderFeature() {
-  const [view, setView] = useState("tools");
+  const [view, setView] = useState(() => {
+    const storedView = readSessionValue(FORM_VIEW_KEY, "tools");
+    return RESTORABLE_VIEWS.has(storedView) ? storedView : "tools";
+  });
   const [previewSchema, setPreviewSchema] = useState(
     () => loadDraft()?.schema ?? createEmptyForm(),
   );
   const [published, setPublished] = useState(() => loadPublishedForm());
-  const [returnView, setReturnView] = useState("builder");
+  const [returnView, setReturnView] = useState(() => readSessionValue(FORM_RETURN_VIEW_KEY, "builder"));
   const [builderKey, setBuilderKey] = useState(0);
   const [forms, setForms] = useState([]);
   const [formsLoading, setFormsLoading] = useState(false);
   const [formsError, setFormsError] = useState(null);
+  const [managementScope, setManagementScope] = useState(() => readSessionValue(FORM_SCOPE_KEY, "published"));
   const [responses, setResponses] = useState([]);
   const [responsesPagination, setResponsesPagination] = useState(null);
   const [responsesLoading, setResponsesLoading] = useState(false);
-  const [selectedForm, setSelectedForm] = useState(null);
+  const [selectedForm, setSelectedForm] = useState(() => readSelectedForm());
+  const [responsesPage, setResponsesPage] = useState(1);
 
-  async function openManagement() {
-    setView("manage");
+  useEffect(() => {
+    sessionStorage.setItem(FORM_VIEW_KEY, view);
+    sessionStorage.setItem(FORM_SCOPE_KEY, managementScope);
+    sessionStorage.setItem(FORM_RETURN_VIEW_KEY, returnView);
+    if (selectedForm) sessionStorage.setItem(FORM_SELECTED_KEY, JSON.stringify(selectedForm));
+    else sessionStorage.removeItem(FORM_SELECTED_KEY);
+  }, [managementScope, returnView, selectedForm, view]);
+
+  useEffect(() => {
+    const clearFormLocationWhenLeaving = () => {
+      const destination = window.location.hash.replace("#", "");
+      if (destination === "forms" || destination.startsWith("forms/")) return;
+      sessionStorage.removeItem(FORM_VIEW_KEY);
+      sessionStorage.removeItem(FORM_SCOPE_KEY);
+      sessionStorage.removeItem(FORM_RETURN_VIEW_KEY);
+      sessionStorage.removeItem(FORM_SELECTED_KEY);
+    };
+
+    window.addEventListener("hashchange", clearFormLocationWhenLeaving);
+    return () => window.removeEventListener("hashchange", clearFormLocationWhenLeaving);
+  }, []);
+
+  useEffect(() => {
+    if (view !== "manage") return undefined;
+    let active = true;
     setFormsLoading(true);
     setFormsError(null);
-    try {
-      const result = await getForms();
-      setForms(result.forms ?? []);
-    } catch (error) {
-      setFormsError(error.response?.data?.error || "Formlar yüklenirken bir hata oluştu.");
-    } finally {
-      setFormsLoading(false);
-    }
+    getForms(managementScope === "drafts" ? "draft" : "published")
+      .then((result) => { if (active) setForms(result.forms ?? []); })
+      .catch((error) => { if (active) setFormsError(error.response?.data?.error || "Formlar yüklenirken bir hata oluştu."); })
+      .finally(() => { if (active) setFormsLoading(false); });
+    return () => { active = false; };
+  }, [managementScope, view]);
+
+  useEffect(() => {
+    if (view !== "responses" || !selectedForm) return undefined;
+    let active = true;
+    setResponsesLoading(true);
+    setFormsError(null);
+    getFormSubmissions(selectedForm.id, responsesPage, 20)
+      .then((result) => {
+        if (!active) return;
+        setResponses(result.submissions ?? []);
+        setResponsesPagination(result.pagination ?? null);
+      })
+      .catch((error) => { if (active) setFormsError(error.response?.data?.error || "Form cevapları yüklenirken bir hata oluştu."); })
+      .finally(() => { if (active) setResponsesLoading(false); });
+    return () => { active = false; };
+  }, [responsesPage, selectedForm, view]);
+
+  function openManagement(scope = "published") {
+    setManagementScope(scope);
+    setView("manage");
   }
 
   function editManagedForm(form) {
@@ -81,20 +150,10 @@ export default function FormBuilderFeature() {
     }
   }
 
-  async function openResponses(form, page = 1) {
+  function openResponses(form, page = 1) {
     setSelectedForm(form);
+    setResponsesPage(page);
     setView("responses");
-    setResponsesLoading(true);
-    setFormsError(null);
-    try {
-      const result = await getFormSubmissions(form.id, page, 20);
-      setResponses(result.submissions ?? []);
-      setResponsesPagination(result.pagination ?? null);
-    } catch (error) {
-      setFormsError(error.response?.data?.error || "Form cevapları yüklenirken bir hata oluştu.");
-    } finally {
-      setResponsesLoading(false);
-    }
   }
 
   function fieldLabel(fieldId) {
@@ -134,7 +193,7 @@ export default function FormBuilderFeature() {
                   aria-disabled={!isAvailable}
                   onClick={() => {
                     if (tool.id === "builder") setView("builder");
-                    if (tool.id === "manage") openManagement();
+                    if (tool.id === "manage") openManagement("published");
                   }}
                 >
                   <ToolIcon name={tool.icon} />
@@ -211,11 +270,24 @@ export default function FormBuilderFeature() {
     content = (
       <div className="form-builder-feature forms-management-view">
         <header className="forms-management-header">
-          <div><span>FORM YÖNETİMİ</span><h1>Formlar</h1><p>Taslak ve yayındaki formlarınızı buradan yönetin.</p></div>
-          <button className="form-tools-back" type="button" onClick={() => setView("tools")}>← Form Araçlarına Dön</button>
+          <div>
+            <span>FORM YÖNETİMİ</span>
+            <h1>{managementScope === "drafts" ? "Taslaklar" : "Geçmiş Formlar"}</h1>
+            <p>{managementScope === "drafts" ? "Kaydettiğiniz taslakları buradan düzenleyin veya silin." : "Yayımlanmış önceki formlarınızı buradan yönetin."}</p>
+          </div>
+          <button
+            className="form-tools-back"
+            type="button"
+            onClick={() => {
+              setView(managementScope === "drafts" ? "builder" : "tools");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            ← {managementScope === "drafts" ? "Form Oluşturmaya Dön" : "Form Araçlarına Dön"}
+          </button>
         </header>
         {formsError && <p className="forms-management-error">{formsError}</p>}
-        {formsLoading ? <div className="forms-management-empty">Formlar yükleniyor...</div> : forms.length === 0 ? <div className="forms-management-empty">Henüz kaydedilmiş bir form yok.</div> : (
+        {formsLoading ? <div className="forms-management-empty">Formlar yükleniyor...</div> : forms.length === 0 ? <div className="forms-management-empty">{managementScope === "drafts" ? "Henüz kaydedilmiş bir taslak yok." : "Henüz kaydedilmiş bir form yok."}</div> : (
           <div className="forms-management-list">
             {forms.map((form) => <article className="managed-form-card" key={form.id}>
               <div className="managed-form-card__info">
@@ -224,7 +296,7 @@ export default function FormBuilderFeature() {
                 <small>Son güncelleme: {new Date(form.updatedAt).toLocaleString("tr-TR")} · {form.submissionCount ?? 0} cevap</small>
               </div>
               <div className="managed-form-card__actions">
-                <button type="button" onClick={() => openResponses(form)}>Cevaplar</button>
+                {managementScope !== "drafts" && <button type="button" onClick={() => openResponses(form)}>Cevaplar</button>}
                 <button type="button" onClick={() => { setPreviewSchema(structuredClone(form.schema)); setReturnView("manage"); setView("preview"); }}>Önizle</button>
                 <button type="button" onClick={() => editManagedForm(form)}>Düzenle</button>
                 <button className="danger" type="button" onClick={() => removeManagedForm(form)}>Sil</button>
@@ -240,7 +312,13 @@ export default function FormBuilderFeature() {
         <FormBuilderPage
           key={builderKey}
           onBack={backToTools}
-          onManageForms={openManagement}
+          onNewForm={() => {
+            startNewDraft();
+            setPublished(null);
+            setBuilderKey((value) => value + 1);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onManageForms={() => openManagement("drafts")}
           onPreview={(schema) => {
             setPreviewSchema(structuredClone(schema));
             setReturnView("builder");

@@ -123,6 +123,8 @@ export const getGroupedVolunteers = async (params = {}) => {
     education = '',
     startDate = '',
     endDate = '',
+    sortField = 'applicationDate',
+    sortDirection = 'desc',
   } = params;
 
   const queryParams = new URLSearchParams({
@@ -133,6 +135,8 @@ export const getGroupedVolunteers = async (params = {}) => {
     education,
     startDate,
     endDate,
+    sortField,
+    sortDirection,
   });
 
   const response = await axios.get(`${API_URL}/volunteers/grouped?${queryParams}`);
@@ -201,7 +205,10 @@ export const updateVolunteerProfile = async (id, profile) => {
   return response.data;
 };
 
-export const getForms = async () => (await axios.get(`${API_URL}/forms`)).data;
+export const getForms = async (status = '') => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return (await axios.get(`${API_URL}/forms${query}`)).data;
+};
 export const createForm = async (schema) => (await axios.post(`${API_URL}/forms`, { schema })).data;
 export const getForm = async (id) => (await axios.get(`${API_URL}/forms/${id}`)).data;
 export const saveFormDraft = async (id, schema, expectedRevision) => (await axios.put(`${API_URL}/forms/${id}`, { schema, expectedRevision })).data;
@@ -227,7 +234,7 @@ export const downloadSubmissionFile = async (formId, submissionId, file) => {
 
 export const getEventDetail = async (id) => {
   const path = id ? `/events/${id}` : '/events/latest';
-  return (await axios.get(`${API_URL}${path}`)).data;
+  return (await axios.get(`${API_URL}${path}`)).data.data;
 };
 
 export const saveEventNotes = async (id, notes) => (
@@ -245,3 +252,16 @@ export const getEventReport = async eventId => (
 export const saveEventReport = async (eventId, report) => (
   await axios.put(`${API_URL}/events/${eventId}/report`, report)
 ).data;
+
+export const getAccountProfile = async () => (await axios.get(`${API_URL}/account/profile`)).data;
+export const updateAccountProfile = async profile => (await axios.put(`${API_URL}/account/profile`, profile)).data;
+export const getAccountUsers = async () => (await axios.get(`${API_URL}/account/users`)).data;
+
+export const getEventManagementOptions = async () => (await axios.get(`${API_URL}/events/options`)).data.data;
+export const createEventGroup = async group => (await axios.post(`${API_URL}/events/groups`, group)).data.data;
+export const createFullManagedEvent = async event => (await axios.post(`${API_URL}/events`, event)).data.data;
+export const uploadEventPoster = async file => {
+  const formData = new FormData();
+  formData.append('poster', file);
+  return (await axios.post(`${API_URL}/events/poster`, formData)).data.data;
+};
