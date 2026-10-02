@@ -209,6 +209,10 @@ export default function EventManagementFeature() {
             <h1>Etkinlik Yönetimi</h1>
           </header>
 
+          <nav className="event-management-backbar" aria-label="Etkinlik sayfasına dönüş">
+            <a href="#events">← Etkinliklere Dön</a>
+          </nav>
+
           <div className="event-layout">
             <aside className="event-side-panel">
               <section className="event-card group-card">

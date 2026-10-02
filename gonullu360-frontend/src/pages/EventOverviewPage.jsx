@@ -165,7 +165,7 @@ export default function EventOverviewPage() {
                   <button type="button" aria-label="Sonraki ay" onClick={() => setCalendarDate(date => new Date(date.getFullYear(), date.getMonth() + 1, 1))}>›</button>
                 </div>
               </div>
-              <div className="event-calendar">
+              <div className="event-overview-calendar">
                 {weekDays.map(day => <span className="weekday" key={day}>{day}</span>)}
                 {calendarDays.map(cell => <button type="button" className={`${cell.muted ? 'muted' : ''} ${cell.events?.length ? 'has-event' : ''}`} key={cell.key} onClick={() => cell.events?.[0] && openDetail(cell.events[0].id)} disabled={!cell.events?.length}>
                   <b>{cell.day}</b>

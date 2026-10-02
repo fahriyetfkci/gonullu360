@@ -46,6 +46,27 @@
   font-size: 11px;
 }
 
+.event-management-backbar {
+  box-sizing: border-box;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 0 14px;
+}
+
+.event-management-backbar a {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 0;
+  color: #52657d;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.event-management-backbar a:hover {
+  color: #00a98f;
+}
+
 .event-layout {
   display: grid;
   grid-template-columns: minmax(245px, 280px) minmax(0, 1fr);
