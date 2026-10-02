@@ -258,6 +258,8 @@ export const updateAccountProfile = async profile => (await axios.put(`${API_URL
 export const getAccountUsers = async () => (await axios.get(`${API_URL}/account/users`)).data;
 
 export const getEventManagementOptions = async () => (await axios.get(`${API_URL}/events/options`)).data.data;
+export const getManagedEvents = async (params = {}) => (await axios.get(`${API_URL}/events`, { params })).data.data;
+export const getEventOverview = async () => (await axios.get(`${API_URL}/events/overview`)).data.data;
 export const createEventGroup = async group => (await axios.post(`${API_URL}/events/groups`, group)).data.data;
 export const createFullManagedEvent = async event => (await axios.post(`${API_URL}/events`, event)).data.data;
 export const uploadEventPoster = async file => {

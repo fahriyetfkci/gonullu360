@@ -1,0 +1,56 @@
+.event-poster--placeholder {
+  background: linear-gradient(
+    155deg,
+    var(--poster-light) 0 54%,
+    color-mix(in srgb, var(--poster-mid) 48%, var(--poster-light)) 55% 100%
+  );
+  color: var(--poster-dark);
+}
+
+.event-poster--placeholder::after {
+  position: absolute;
+  right: -55px;
+  bottom: -60px;
+  width: 190px;
+  height: 190px;
+  border: 25px solid color-mix(in srgb, var(--poster-accent) 35%, transparent);
+  border-radius: 50%;
+  content: "";
+}
+
+.event-poster--placeholder small {
+  z-index: 1;
+  color: var(--poster-accent);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: .035em;
+  text-shadow: 0 1px 1px color-mix(in srgb, var(--poster-dark) 55%, transparent);
+}
+
+.event-poster--placeholder strong {
+  z-index: 1;
+  max-width: 95%;
+  margin-top: 8px;
+  color: var(--poster-dark);
+  font-size: 32px;
+  line-height: 1.04;
+}
+
+.event-poster--placeholder span {
+  z-index: 1;
+  margin: 34px 0;
+  font-size: 76px;
+  filter: drop-shadow(0 7px 8px rgba(23, 41, 60, .18));
+}
+
+.event-poster--placeholder b {
+  z-index: 1;
+  max-width: 90%;
+  color: var(--poster-dark);
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.event-poster--placeholder .poster-wave {
+  background: linear-gradient(160deg, var(--poster-dark), var(--poster-mid));
+}

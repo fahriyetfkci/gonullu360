@@ -34,6 +34,18 @@ type DemoSnapshot = {
 
 const asDate = (value: string) => new Date(value);
 const asOptionalDate = (value: string | null) => value ? new Date(value) : null;
+const upcomingDemoEvents = [
+  { name: 'Gönüllü Tanışma Buluşması', slug: 'gonullu-tanisma-bulusmasi', startsAt: '2026-10-10T15:00:00+03:00', endsAt: '2026-10-10T17:00:00+03:00', address: 'İstanbul Üniversitesi', group: 'Genel' },
+  { name: 'Kahve Dağıtım Etkinliği', slug: 'kahve-dagitim-etkinligi', startsAt: '2026-10-17T15:00:00+03:00', endsAt: '2026-10-17T18:00:00+03:00', address: 'Üsküdar Meydanı', group: 'Üniversite Erkek' },
+  { name: 'Kitap Okuma Etkinliği', slug: 'kitap-okuma-etkinligi', startsAt: '2026-10-24T13:00:00+03:00', endsAt: '2026-10-24T15:00:00+03:00', address: 'Dernek Binası', group: 'Ortaokul Kadın' },
+  { name: 'Fidan Dikim Günü', slug: 'fidan-dikim-gunu', startsAt: '2026-11-07T10:00:00+03:00', endsAt: '2026-11-07T14:00:00+03:00', address: 'Atatürk Kent Ormanı', group: 'Lise Erkek' },
+];
+const eventAudienceGroups = [
+  { name: 'Ortaokul Erkek', color: '#f59e0b' }, { name: 'Ortaokul Kadın', color: '#f43f5e' },
+  { name: 'Lise Kadın', color: '#ec4899' }, { name: 'Lise Erkek', color: '#1689ef' },
+  { name: 'Üniversite Kadın', color: '#8b5cf6' }, { name: 'Üniversite Erkek', color: '#4f46e5' },
+  { name: 'Genel', color: '#00ad87' },
+];
 
 function readSnapshot(): DemoSnapshot {
   const snapshotPath = path.resolve(process.cwd(), 'prisma', 'demo-snapshot.json');
@@ -71,6 +83,12 @@ async function main() {
   const manager = await prisma.user.findFirst({ where: { organizationId: organization.id, role: Role.ADMIN } });
   if (!manager) throw new Error('Demo yöneticisi bulunamadı. Önce npm run seed çalıştırın.');
   await clearOrganizationData(organization.id);
+  const eventGroups = await Promise.all(eventAudienceGroups.map(group => prisma.eventGroup.upsert({
+    where: { organizationId_name: { organizationId: organization.id, name: group.name } },
+    create: { organizationId: organization.id, ...group },
+    update: { color: group.color },
+  })));
+  const eventGroupByName = new Map(eventGroups.map(group => [group.name, group]));
 
   const volunteerIdMap = new Map<number, number>();
   for (const volunteer of snapshot.volunteers) {
@@ -93,19 +111,58 @@ async function main() {
   await prisma.application.createMany({ data: snapshot.applications.map(application => ({ organizationId: organization.id, ...application, education: normalizeEducationLevel(application.education), createdAt: asDate(application.createdAt) })) });
 
   const eventIdMap = new Map<number, number>();
-  for (const event of snapshot.events) {
+  for (const [eventIndex, event] of snapshot.events.entries()) {
     const created = await prisma.event.create({ data: {
       organizationId: organization.id, name: event.name, date: asDate(event.date), target: event.target, completed: event.completed,
       time: event.time, groupName: event.groupName, imageUrl: event.imageUrl, notes: event.notes,
       tasks: { create: event.tasks.map(task => ({ ...task, createdAt: asDate(task.createdAt) })) },
+      groups: { create: { groupId: eventGroups[eventIndex % eventGroups.length].id } },
       report: event.report ? { create: { summary: event.report.summary, achievements: event.report.achievements, issues: event.report.issues, managerEvaluation: event.report.managerEvaluation, createdAt: asDate(event.report.createdAt), updatedAt: asDate(event.report.updatedAt) } } : undefined,
     } });
     eventIdMap.set(event.id, created.id);
   }
 
+  const futureEventIds: number[] = [];
+  for (const definition of upcomingDemoEvents) {
+    const group = eventGroupByName.get(definition.group)!;
+    const startsAt = asDate(definition.startsAt);
+    const event = await prisma.event.create({
+      data: {
+        organizationId: organization.id,
+        createdById: manager.id,
+        name: definition.name,
+        slug: definition.slug,
+        date: startsAt,
+        startsAt,
+        endsAt: asDate(definition.endsAt),
+        time: startsAt.toLocaleTimeString('en-GB', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' }),
+        address: definition.address,
+        capacity: 60,
+        target: 60,
+        status: 'SCHEDULED',
+        completed: false,
+        groups: { create: { groupId: group.id } },
+      },
+    });
+    futureEventIds.push(event.id);
+  }
+
+  const septemberEvent = await prisma.event.create({
+    data: {
+      organizationId: organization.id, createdById: manager.id, name: 'Eylül Gönüllü Buluşması', slug: 'eylul-gonullu-bulusmasi',
+      date: asDate('2026-09-20T14:00:00+03:00'), startsAt: asDate('2026-09-20T14:00:00+03:00'), endsAt: asDate('2026-09-20T17:00:00+03:00'),
+      time: '14:00', address: 'Dernek Binası', capacity: 60, target: 60, status: 'COMPLETED', completed: true,
+      groups: { create: { groupId: eventGroupByName.get('Genel')!.id } },
+    },
+  });
+
   const participantData = snapshot.events.flatMap(event => event.participants.map(participant => ({ eventId: eventIdMap.get(event.id), volunteerId: volunteerIdMap.get(participant.volunteerId) })))
     .filter((item): item is { eventId: number; volunteerId: number } => item.eventId !== undefined && item.volunteerId !== undefined);
   if (participantData.length) await prisma.eventParticipant.createMany({ data: participantData, skipDuplicates: true });
+  const importedVolunteerIds = [...volunteerIdMap.values()];
+  await prisma.eventParticipant.createMany({ data: importedVolunteerIds.slice(0, 34).map(volunteerId => ({ volunteerId, eventId: septemberEvent.id })), skipDuplicates: true });
+  const octoberVolunteerIds = [...importedVolunteerIds.slice(0, 23), ...importedVolunteerIds.slice(34, 50)];
+  await prisma.eventParticipant.createMany({ data: octoberVolunteerIds.map((volunteerId, index) => ({ volunteerId, eventId: futureEventIds[index % 3] })), skipDuplicates: true });
 
   const users = await prisma.user.findMany({ where: { organizationId: organization.id }, select: { id: true, email: true } });
   const userByEmail = new Map(users.map(user => [user.email, user.id]));
@@ -113,7 +170,7 @@ async function main() {
   await prisma.educationInstitutionStat.createMany({ data: snapshot.educationStats.map(item => ({ city: item.city, studentCount: item.studentCount, universities: item.universities, middleSchools: item.middleSchools, highSchools: item.highSchools, vocationalHighSchools: item.vocationalHighSchools, period: item.period, mebSource: item.mebSource, yokSource: item.yokSource, syncStatus: item.syncStatus, syncError: item.syncError, lastAttemptAt: asOptionalDate(item.lastAttemptAt), syncedAt: asDate(item.syncedAt) })) });
 
   console.log('Demo snapshot başarıyla içe aktarıldı.');
-  console.log({ volunteers: snapshot.volunteers.length, applications: snapshot.applications.length, events: snapshot.events.length, participants: participantData.length, notifications: snapshot.notifications.length, educationStats: snapshot.educationStats.length });
+  console.log({ volunteers: snapshot.volunteers.length, applications: snapshot.applications.length, events: snapshot.events.length + upcomingDemoEvents.length + 1, participants: participantData.length + 73, notifications: snapshot.notifications.length, educationStats: snapshot.educationStats.length });
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());

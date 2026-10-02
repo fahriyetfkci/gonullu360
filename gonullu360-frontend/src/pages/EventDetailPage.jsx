@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import { getEventDetail, getEventReport, saveEventNotes, saveEventReport, setEventTaskCompleted } from '../services/api';
 import './EventDetailPage.css';
+import './EventPosterThemes.css';
 import './EventVolunteersDialog.css';
 
 const formatDate = value => new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
@@ -10,14 +11,44 @@ const formatDate = value => new Intl.DateTimeFormat('tr-TR', { day: '2-digit', m
 function Poster({ event }) {
   if (event.imageUrl) return <img className="event-poster" src={event.imageUrl} alt={`${event.name} afişi`} />;
   const normalizedName = event.name.toLocaleLowerCase('tr-TR');
-  const isSport = normalizedName.includes('spor') || normalizedName.includes('turnuva');
-  const poster = isSport
-    ? { eyebrow: 'HAREKETE GEÇ', title: 'SPOR TURNUVASI', icon: '🏆', message: 'Takım ruhunu birlikte yaşa.' }
-    : { eyebrow: 'HER GÜN EN AZ 30 DK.', title: event.name.toLocaleUpperCase('tr-TR'), icon: '📚', message: 'Birlikte öğreniyor, birlikte gelişiyoruz.' };
-  return <div className="event-poster event-poster--placeholder" aria-label="Etkinlik afişi">
+  const themes = [
+    { words: ['iletişim atölyesi'], eyebrow: 'SÖZÜNÜ ETKİYE DÖNÜŞTÜR', icon: '💬', message: 'Dinle, anlat ve güçlü bağlar kur.', colors: ['#24506f', '#4b91a8', '#dceff2'], accent: '#ffd166' },
+    { words: ['fotoğrafçılık'], eyebrow: 'ANI YAKALA', icon: '📷', message: 'Kadrajını kur, hikâyeni görüntüyle anlat.', colors: ['#4b315f', '#9965a9', '#f0e0f3'], accent: '#ffc85a' },
+    { words: ['medya eğitimi'], eyebrow: 'MESAJINI DOĞRU AKTAR', icon: '🎙️', message: 'Bilinçli içerikle güvenilir iletişim kur.', colors: ['#713451', '#c26f8d', '#f8e2e9'], accent: '#ffe075' },
+    { words: ['saha koordinasyon'], eyebrow: 'SAHADA UYUM, SONUÇTA BAŞARI', icon: '🧭', message: 'Planla, koordine et ve birlikte tamamla.', colors: ['#374b63', '#718aa1', '#e3ebf1'], accent: '#f8c85a' },
+    { words: ['afet farkındalık'], eyebrow: 'AFETE HAZIR OL', icon: '🛟', message: 'Riskleri tanı, doğru adımla hayat kurtar.', colors: ['#9a3d27', '#e1764d', '#ffead1'], accent: '#ffffff' },
+    { words: ['ilk yardım'], eyebrow: 'DOĞRU MÜDAHALE HAYAT KURTARIR', icon: '⛑️', message: 'Bilgini tazele, acil durumda hazır ol.', colors: ['#a62532', '#e6585f', '#ffe5e1'], accent: '#ffffff' },
+    { words: ['kan bağışı'], eyebrow: 'BİR BAĞIŞ, ÜÇ UMUT', icon: '🩸', message: 'Hayata uzanan iyilik zincirine katıl.', colors: ['#8f1d2c', '#e4545c', '#ffe6e2'], accent: '#ffffff' },
+    { words: ['çevre temizliği'], eyebrow: 'TEMİZ BİR ÇEVRE İÇİN', icon: '♻️', message: 'Yaşadığın yere sahip çık, değişimi başlat.', colors: ['#17684f', '#50a878', '#e2f4e7'], accent: '#f2ca45' },
+    { words: ['fidan dikim'], eyebrow: 'GELECEĞE NEFES OL', icon: '🌱', message: 'Diktiğin her fidan yarına umut olsun.', colors: ['#35652d', '#75a957', '#eaf3cf'], accent: '#ffe178' },
+    { words: ['yetim dayanışma'], eyebrow: 'SEVGİYLE YANINDA OL', icon: '🫶', message: 'Birlikte güçlenen umutlara destek ver.', colors: ['#285f86', '#76afd2', '#dfeef8'], accent: '#7dbb3d' },
+    { words: ['ramazan yardım'], eyebrow: 'RAMAZAN PAYLAŞMAKTIR', icon: '🌙', message: 'Bereketi ve iyiliği birlikte çoğalt.', colors: ['#284f58', '#5b9185', '#e4eee0'], accent: '#f3cc65' },
+    { words: ['kış yardımı'], eyebrow: 'SICAKLIĞI PAYLAŞ', icon: '🧣', message: 'Soğuk günlerde dayanışmayla yanında ol.', colors: ['#315878', '#6fa0c5', '#e2f0f8'], accent: '#ffcc67' },
+    { words: ['sosyal yardım'], eyebrow: 'DAYANIŞMAYLA GÜÇLEN', icon: '📦', message: 'İhtiyaca ulaş, iyiliği yerinde büyüt.', colors: ['#6b4c33', '#b18458', '#f4e8d5'], accent: '#f6cb61' },
+    { words: ['çocuk şenliği'], eyebrow: 'NEŞEYİ BİRLİKTE BÜYÜT', icon: '🎈', message: 'Her çocuğun gülümsemesine ortak ol.', colors: ['#7947a8', '#ec6ca9', '#fff0a8'], accent: '#ffffff' },
+    { words: ['spor turnuvası'], eyebrow: 'ENERJİNİ PAYLAŞ', icon: '🏆', message: 'Takım ruhuyla aynı hedefe koş.', colors: ['#193d73', '#68b7ef', '#dff3ff'], accent: '#ffce36' },
+    { words: ['teknoloji atölyesi'], eyebrow: 'GELECEĞİ TASARLA', icon: '💻', message: 'Fikrini geliştir, çözümünü hayata geçir.', colors: ['#263477', '#5f70df', '#dce7ff'], accent: '#69f0cf' },
+    { words: ['kariyer atölyesi'], eyebrow: 'YOLUNU ŞİMDİ ÇİZ', icon: '💼', message: 'Güçlü yönlerini keşfet, geleceğine hazırlan.', colors: ['#254d69', '#568eaa', '#e1eef3'], accent: '#ffd166' },
+    { words: ['stk zirvesi'], eyebrow: 'ORTAK AKILLA DAHA GÜÇLÜ', icon: '🌐', message: 'Deneyimi paylaş, sosyal etkiyi büyüt.', colors: ['#234c52', '#4f8b83', '#dcece5'], accent: '#f0c75e' },
+    { words: ['gönüllülük semineri'], eyebrow: 'İYİLİĞE ADIM AT', icon: '🙋', message: 'Zamanını paylaş, topluma değer kat.', colors: ['#16665f', '#53aa99', '#e0f3eb'], accent: '#ffd45f' },
+    { words: ['gönüllü buluşması'], eyebrow: 'AYNI AMAÇTA BULUŞUYORUZ', icon: '🤝', message: 'Deneyimini paylaş, dayanışmayı büyüt.', colors: ['#155c67', '#55ada5', '#e0f3eb'], accent: '#f2cf53' },
+    { words: ['kahvaltı buluşması'], eyebrow: 'AYNI MASADA BULUŞ', icon: '☕', message: 'Sohbetle yakınlaş, yeni bağlar kur.', colors: ['#795238', '#c9925e', '#f8ead2'], accent: '#fff4c1' },
+    { words: ['kitap tahlili'], eyebrow: 'OKU, DÜŞÜN, PAYLAŞ', icon: '📖', message: 'Farklı bakışlarla metnin izini sür.', colors: ['#46587a', '#8496bd', '#e9edf7'], accent: '#f0cb65' },
+    { words: ['gençlik kampı'], eyebrow: 'KEŞFETMEYE HAZIR OL', icon: '🏕️', message: 'Doğada öğren, dostlukla güçlen.', colors: ['#355f42', '#82a767', '#f1e5bd'], accent: '#fff0a6' },
+    { words: ['kültür gezisi'], eyebrow: 'GEÇMİŞİN İZİNDE', icon: '🏛️', message: 'Keşfet, öğren ve ortak mirası tanı.', colors: ['#694f3b', '#ad8867', '#f2e5d2'], accent: '#f7d477' },
+  ];
+  const poster = themes.find(theme => theme.words.some(word => normalizedName.includes(word))) || {
+    eyebrow: 'BİRLİKTE HAREKETE GEÇ', icon: '✨', message: 'Gönüllülükle değişime değer kat.',
+    colors: ['#155c67', '#55ada5', '#e0f3eb'], accent: '#f2cf53',
+  };
+  const posterStyle = {
+    '--poster-dark': poster.colors[0], '--poster-mid': poster.colors[1],
+    '--poster-light': poster.colors[2], '--poster-accent': poster.accent,
+  };
+  return <div className="event-poster event-poster--placeholder" style={posterStyle} aria-label={`${event.name} etkinlik afişi`}>
     <div className="poster-wave" />
     <small>{poster.eyebrow}</small>
-    <strong>{poster.title}</strong>
+    <strong>{event.name.toLocaleUpperCase('tr-TR')}</strong>
     <span>{poster.icon}</span>
     <b>{poster.message}</b>
   </div>;
@@ -67,6 +98,9 @@ export default function EventDetailPage() {
     <Sidebar />
     <div className="event-detail-content">
       <Navbar />
+      <nav className="event-detail-backbar" aria-label="Etkinlik sayfasına dönüş">
+        <a href="#events">← Etkinliklere Dön</a>
+      </nav>
       {status === 'loading' && <main className="event-state">Etkinlik yükleniyor…</main>}
       {status === 'error' && <main className="event-state event-state--error">{message}</main>}
       {event && <main className="event-detail-grid">

@@ -84,6 +84,7 @@ export const openApiDocument = {
       get: { tags: ['Events'], summary: 'Organizasyonun etkinliklerini listeler', security: bearer, responses: { '200': { description: 'Etkinlik listesi' } } },
       post: { tags: ['Events'], summary: 'Yeni etkinlik oluşturur', security: bearer, responses: { '201': { description: 'Etkinlik oluşturuldu' }, '422': { description: 'Bilgiler geçersiz' } } },
     },
+    '/events/overview': { get: { tags: ['Events'], summary: 'Etkinlik yönetimi özetini ve durum dağılımını getirir', security: bearer, responses: { '200': { description: 'Veritabanından hesaplanan etkinlik özeti' } } } },
     '/events/poster': { post: { tags: ['Events'], summary: 'Etkinlik posteri yükler', security: bearer, requestBody: { required: true, content: { 'multipart/form-data': { schema: { type: 'object', required: ['poster'], properties: { poster: { type: 'string', format: 'binary' } } } } } }, responses: { '201': { description: 'Poster yüklendi' }, '400': { description: 'Dosya geçersiz' } } } },
     '/events/{id}': {
       get: { tags: ['Events'], summary: 'Etkinlik ayrıntısını getirir', security: bearer, parameters: [id('Etkinlik numarası')], responses: { '200': { description: 'Etkinlik ayrıntısı' }, '404': { description: 'Bulunamadı' } } },

@@ -9,6 +9,7 @@ const FormBuilderFeature = lazy(() => import('./features/form-builder/FormBuilde
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
 const EventDetailPage = lazy(() => import('./pages/EventDetailPage'));
+const EventOverviewPage = lazy(() => import('./pages/EventOverviewPage'));
 const EventManagementPage = lazy(() => import('./features/event-management/EventManagementFeature'));
 const DataEntryPage = lazy(() => import('./pages/DataEntryPage'));
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'));
@@ -41,9 +42,9 @@ function App() {
       return "security";
     }
 
-    if (pageFromHash === "events" || pageFromHash.startsWith("events/")) {
-      return pageFromHash === "events" ? "event-management" : "event-detail";
-    }
+    if (pageFromHash === "events") return "event-overview";
+    if (pageFromHash === "events/new") return "event-management";
+    if (/^events\/\d+$/.test(pageFromHash)) return "event-detail";
 
     if (pageFromHash === "data-entry") {
       return "data-entry";
@@ -98,6 +99,10 @@ function App() {
 
   if (currentPage === "event-management") {
     page = <EventManagementPage />;
+  }
+
+  if (currentPage === "event-overview") {
+    page = <EventOverviewPage />;
   }
 
   if (currentPage === "event-detail") {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { create, createGroup, detail, getReport, latest, list, options, remove, saveReport, update, updateNotes, updateTask, uploadPoster } from '../controllers/eventController';
+import { create, createGroup, detail, getReport, latest, list, options, overview, remove, saveReport, update, updateNotes, updateTask, uploadPoster } from '../controllers/eventController';
 import { authMiddleware, requireManager } from '../middleware/auth';
 
 const router = Router();
@@ -12,6 +12,7 @@ const posterUpload = multer({
 });
 router.get('/', list);
 router.get('/options', options);
+router.get('/overview', overview);
 router.post('/groups', createGroup);
 router.post('/', create);
 router.post('/poster', posterUpload.single('poster'), uploadPoster);

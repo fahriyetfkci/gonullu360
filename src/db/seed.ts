@@ -34,6 +34,21 @@ const eventNames = [
   'Çocuk Şenliği', 'Spor Turnuvası', 'Teknoloji Atölyesi', 'Gönüllülük Semineri',
   'Kültür Gezisi', 'Fidan Dikim Etkinliği', 'Saha Koordinasyon Eğitimi', 'İletişim Atölyesi',
 ];
+const upcomingDemoEvents = [
+  { name: 'Gönüllü Tanışma Buluşması', startsAt: '2026-10-10T15:00:00+03:00', endsAt: '2026-10-10T17:00:00+03:00', address: 'İstanbul Üniversitesi', group: 'Genel' },
+  { name: 'Kahve Dağıtım Etkinliği', startsAt: '2026-10-17T15:00:00+03:00', endsAt: '2026-10-17T18:00:00+03:00', address: 'Üsküdar Meydanı', group: 'Üniversite Erkek' },
+  { name: 'Kitap Okuma Etkinliği', startsAt: '2026-10-24T13:00:00+03:00', endsAt: '2026-10-24T15:00:00+03:00', address: 'Dernek Binası', group: 'Ortaokul Kadın' },
+  { name: 'Fidan Dikim Günü', startsAt: '2026-11-07T10:00:00+03:00', endsAt: '2026-11-07T14:00:00+03:00', address: 'Atatürk Kent Ormanı', group: 'Lise Erkek' },
+];
+const eventAudienceGroups = [
+  { name: 'Ortaokul Erkek', color: '#f59e0b' },
+  { name: 'Ortaokul Kadın', color: '#f43f5e' },
+  { name: 'Lise Kadın', color: '#ec4899' },
+  { name: 'Lise Erkek', color: '#1689ef' },
+  { name: 'Üniversite Kadın', color: '#8b5cf6' },
+  { name: 'Üniversite Erkek', color: '#4f46e5' },
+  { name: 'Genel', color: '#00ad87' },
+];
 const maleNames = ['Ahmet', 'Mehmet', 'Mustafa', 'Ali', 'Hüseyin', 'İbrahim', 'Hasan', 'Ömer', 'Yusuf', 'Murat', 'Emre', 'Burak', 'Serkan', 'Fatih', 'Kadir'];
 const femaleNames = ['Ayşe', 'Fatma', 'Emine', 'Hatice', 'Zeynep', 'Elif', 'Meryem', 'Şule', 'Merve', 'Esra', 'Büşra', 'Selin', 'Gamze', 'Derya', 'Tuğba'];
 const surnames = ['Yılmaz', 'Kaya', 'Demir', 'Şahin', 'Çelik', 'Arslan', 'Doğan', 'Kılıç', 'Aslan', 'Çetin', 'Aydın', 'Özdemir', 'Erdoğan', 'Kurt', 'Güneş'];
@@ -77,6 +92,10 @@ async function main() {
   await prisma.user.create({
     data: { organizationId: organization.id, name: 'Ayşe Kaya', email: 'ayse@gonullu360.com', password: await hashPassword(seedUserPassword), role: Role.VOLUNTEER },
   });
+  const eventGroups = await Promise.all(eventAudienceGroups.map(group => prisma.eventGroup.create({
+    data: { organizationId: organization.id, ...group },
+  })));
+  const eventGroupByName = new Map(eventGroups.map(group => [group.name, group]));
 
   const volunteerData = Array.from({ length: 200 }, () => {
     const gender = faker.helpers.arrayElement(genders);
@@ -103,17 +122,62 @@ async function main() {
         name,
         date: faker.date.between({ from: `${year}-01-01`, to: `${year}-${year === 2026 ? '07-01' : '12-31'}` }),
         target: faker.number.int({ min: 50, max: 200 }),
-        completed: faker.helpers.arrayElement([false, true, true, true]),
+        completed: index !== 7 && index !== 15,
+        status: index === 7 || index === 15 ? 'CANCELLED' : 'COMPLETED',
+        groups: { create: { groupId: eventGroups[index % eventGroups.length].id } },
       },
     });
     eventIds.push(event.id);
   }
+
+  const futureEventIds: number[] = [];
+  for (const definition of upcomingDemoEvents) {
+    const group = eventGroupByName.get(definition.group)!;
+    const startsAt = new Date(definition.startsAt);
+    const event = await prisma.event.create({
+      data: {
+        organizationId: organization.id,
+        name: definition.name,
+        slug: slugify(definition.name).replace(/\./g, '-'),
+        date: startsAt,
+        startsAt,
+        endsAt: new Date(definition.endsAt),
+        time: startsAt.toLocaleTimeString('en-GB', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' }),
+        address: definition.address,
+        capacity: 60,
+        target: 60,
+        status: 'SCHEDULED',
+        completed: false,
+        createdById: manager.id,
+        groups: { create: { groupId: group.id } },
+      },
+    });
+    futureEventIds.push(event.id);
+  }
+
+  const septemberEvent = await prisma.event.create({
+    data: {
+      organizationId: organization.id, createdById: manager.id, name: 'Eylül Gönüllü Buluşması', slug: 'eylul-gonullu-bulusmasi',
+      date: new Date('2026-09-20T14:00:00+03:00'), startsAt: new Date('2026-09-20T14:00:00+03:00'), endsAt: new Date('2026-09-20T17:00:00+03:00'),
+      time: '14:00', address: 'Dernek Binası', capacity: 60, target: 60, status: 'COMPLETED', completed: true,
+      groups: { create: { groupId: eventGroupByName.get('Genel')!.id } },
+    },
+  });
 
   const participantData = volunteers.flatMap(volunteer =>
     faker.helpers.arrayElements(eventIds, faker.number.int({ min: 0, max: 3 }))
       .map(eventId => ({ volunteerId: volunteer.id, eventId })),
   );
   if (participantData.length) await prisma.eventParticipant.createMany({ data: participantData, skipDuplicates: true });
+  await prisma.eventParticipant.createMany({
+    data: volunteers.slice(0, 34).map(volunteer => ({ volunteerId: volunteer.id, eventId: septemberEvent.id })),
+    skipDuplicates: true,
+  });
+  const octoberParticipants = [...volunteers.slice(0, 23), ...volunteers.slice(34, 50)];
+  await prisma.eventParticipant.createMany({
+    data: octoberParticipants.map((volunteer, index) => ({ volunteerId: volunteer.id, eventId: futureEventIds[index % 3] })),
+    skipDuplicates: true,
+  });
 
   for (const volunteer of volunteers) {
     const birthYear = 2026 - volunteer.age;

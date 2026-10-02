@@ -115,6 +115,88 @@ export async function list(req: AuthRequest, res: Response) {
   return res.json({ data: { items, pagination: { page: query.page, limit: query.limit, total } } });
 }
 
+export async function overview(req: AuthRequest, res: Response) {
+  const organizationId = req.user!.organizationId;
+  const now = new Date();
+  const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const nextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const previousMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const [events, participantCount, currentMonthRows, previousMonthRows, activeVolunteers, participatingActiveVolunteers] = await prisma.$transaction([
+    prisma.event.findMany({
+      where: { organizationId, status: { not: 'ARCHIVED' } },
+      select: { status: true, completed: true, startsAt: true, endsAt: true, date: true, capacity: true },
+    }),
+    prisma.eventParticipant.count({
+      where: { event: { organizationId, status: { not: 'ARCHIVED' } } },
+    }),
+    prisma.eventParticipant.findMany({
+      where: { event: { organizationId, status: { not: 'ARCHIVED' }, date: { gte: currentMonthStart, lt: nextMonthStart } } },
+      select: { volunteerId: true },
+      distinct: ['volunteerId'],
+    }),
+    prisma.eventParticipant.findMany({
+      where: { event: { organizationId, status: { not: 'ARCHIVED' }, date: { gte: previousMonthStart, lt: currentMonthStart } } },
+      select: { volunteerId: true },
+      distinct: ['volunteerId'],
+    }),
+    prisma.volunteer.count({ where: { organizationId, active: true } }),
+    prisma.volunteer.count({
+      where: { organizationId, active: true, participants: { some: { event: { status: { not: 'ARCHIVED' } } } } },
+    }),
+  ]);
+
+  const statusCounts = { completed: 0, scheduled: 0, cancelled: 0 };
+  for (const event of events) {
+    const eventEnd = event.endsAt || event.startsAt || event.date;
+    if (event.status === 'CANCELLED') statusCounts.cancelled += 1;
+    else if (event.status === 'COMPLETED' || event.completed || eventEnd < now) statusCounts.completed += 1;
+    else statusCounts.scheduled += 1;
+  }
+  const totalEvents = statusCounts.completed + statusCounts.scheduled + statusCounts.cancelled;
+  const percentage = (count: number) => totalEvents ? Math.round((count / totalEvents) * 100) : 0;
+  const totalCapacity = events.reduce((total, event) => total + (event.capacity || 0), 0);
+  const upcomingEvents = statusCounts.scheduled;
+  const currentParticipants = new Set(currentMonthRows.map(row => row.volunteerId));
+  const previousParticipants = new Set(previousMonthRows.map(row => row.volunteerId));
+  const continuing = [...currentParticipants].filter(id => previousParticipants.has(id)).length;
+  const newComparedToPreviousMonth = [...currentParticipants].filter(id => !previousParticipants.has(id)).length;
+  const notContinuing = [...previousParticipants].filter(id => !currentParticipants.has(id)).length;
+  const participationTotal = continuing + newComparedToPreviousMonth + notContinuing;
+  const participationPercentage = (count: number) => participationTotal ? Math.round((count / participationTotal) * 100) : 0;
+  const monthlyParticipantDifference = currentParticipants.size - previousParticipants.size;
+  const monthlyParticipationChange = previousParticipants.size
+    ? Math.round((monthlyParticipantDifference / previousParticipants.size) * 100)
+    : currentParticipants.size ? 100 : 0;
+
+  return res.json({
+    data: {
+      totalEvents,
+      totalParticipants: participantCount,
+      totalCapacity,
+      capacityOccupancyRate: totalCapacity ? Math.min(100, Math.round((participantCount / totalCapacity) * 100)) : 0,
+      activeVolunteers,
+      activeVolunteerParticipationRate: activeVolunteers ? Math.round((participatingActiveVolunteers / activeVolunteers) * 100) : 0,
+      upcomingEvents,
+      distribution: {
+        completed: { count: statusCounts.completed, percentage: percentage(statusCounts.completed) },
+        scheduled: { count: statusCounts.scheduled, percentage: percentage(statusCounts.scheduled) },
+        cancelled: { count: statusCounts.cancelled, percentage: percentage(statusCounts.cancelled) },
+      },
+      participationDistribution: {
+        comparedToPreviousMonth: {
+          count: monthlyParticipantDifference,
+          percentage: monthlyParticipationChange,
+          direction: monthlyParticipantDifference > 0 ? 'up' : monthlyParticipantDifference < 0 ? 'down' : 'steady',
+          currentMonthParticipants: currentParticipants.size,
+          previousMonthParticipants: previousParticipants.size,
+        },
+        continuing: { count: continuing, percentage: participationPercentage(continuing) },
+        notContinuing: { count: notContinuing, percentage: participationPercentage(notContinuing) },
+      },
+    },
+  });
+}
+
 export async function create(req: AuthRequest, res: Response) {
   const data = managedEventSchema.parse(req.body);
   await validateManagedReferences(req.user!.organizationId, data);

@@ -163,6 +163,25 @@ dosya seçilebilir. Mevcut sürüm dosyayı istemci tarafında seçip doğrular;
 içeriğini backend'de işleyerek gönüllü kayıtlarına otomatik aktarma işlemi henüz
 uygulanmamıştır. Bu nedenle dosya seçilmesi veritabanında kayıt oluşturmaz.
 
+## Etkinlik özeti
+
+`#events` adresi etkinlik yönetiminin varsayılan giriş ekranıdır. Bu panel;
+toplam etkinlik, aktif gönüllü ve aktif gönüllü katılım oranını gösterir. Katılım
+oranı bölümü, `GET /api/events/overview` üzerinden gelen aylık benzersiz gönüllü
+katılım verilerine dayanır:
+
+- **Geçen aya göre:** İçinde bulunulan ay ile önceki aydaki benzersiz katılımcı
+  sayılarının yüzdesel değişimi.
+- **Devam eden:** Her iki ayda da en az bir etkinliğe katılan benzersiz
+  gönüllülerin, önceki ay katılımcılarına oranı.
+- **Devam etmeyen:** Önceki ay katılıp içinde bulunulan ayda katılmayan benzersiz
+  gönüllülerin, önceki ay katılımcılarına oranı.
+
+Yaklaşan ve geçmiş etkinliklerdeki grup etiketi ve renkleri backend'deki etkinlik
+grubundan gelir. Kullanılan gruplar: Ortaokul Erkek, Ortaokul Kadın, Lise Kadın,
+Lise Erkek, Üniversite Kadın, Üniversite Erkek ve Genel. Geçmiş Etkinlikler
+tablosu performans ve okunabilirlik için sayfa başına dört kayıt gösterir.
+
 ## Dosya yükleme ve güvenlik kuralları
 
 - Etkinlik posterlerinde yalnızca içeriği gerçekten PNG veya JPEG olan dosyalar kabul edilir.

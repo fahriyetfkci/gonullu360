@@ -63,6 +63,18 @@ test('etkinlik yönetimi grup, CRUD, arama ve filtreleme akışını destekler',
   assert.equal(listed.data.items[0].id, temporaryEventId);
   assert.equal(listed.data.items[0].groups[0].id, temporaryEventGroupId);
 
+  const overviewResponse = await fetch(`${baseUrl}/events/overview`, { headers });
+  const overview = await overviewResponse.json();
+  assert.equal(overviewResponse.status, 200);
+  assert.equal(typeof overview.data.totalEvents, 'number');
+  assert.equal(typeof overview.data.activeVolunteers, 'number');
+  assert.equal(typeof overview.data.activeVolunteerParticipationRate, 'number');
+  assert.equal(typeof overview.data.distribution.completed.percentage, 'number');
+  assert.equal(typeof overview.data.distribution.scheduled.percentage, 'number');
+  assert.equal(typeof overview.data.distribution.cancelled.percentage, 'number');
+  assert.equal(typeof overview.data.participationDistribution.comparedToPreviousMonth.currentMonthParticipants, 'number');
+  assert.equal(typeof overview.data.participationDistribution.comparedToPreviousMonth.previousMonthParticipants, 'number');
+
   const updateResponse = await fetch(`${baseUrl}/events/${temporaryEventId}`, { method: 'PUT', headers, body: JSON.stringify({ ...payload, name: `Güncel Etkinlik ${suffix}` }) });
   assert.equal(updateResponse.status, 200);
 
