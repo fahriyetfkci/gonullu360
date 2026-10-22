@@ -18,7 +18,7 @@ const MAP_METRICS = {
     label: 'Gönüllü sayısı', source: 'Gönüllü 360', unit: 'gönüllü', rankingTitle: 'En Fazla Gönüllüsü Olan 5 İl', value: city => city.volunteerCount || 0,
   },
   students: {
-    label: 'Öğrenci sayısı', source: 'MEB', unit: 'öğrenci', rankingTitle: 'En Fazla Öğrencisi Olan 5 İl', value: city => city.studentCount || 0,
+    label: 'Toplam öğrenci sayısı', source: 'MEB + YÖK', unit: 'öğrenci', rankingTitle: 'En Fazla Öğrencisi Olan 5 İl', value: city => city.studentCount || 0,
   },
   events: {
     label: 'Aylık etkinlik', source: 'Katılım verileri', unit: 'aylık etkinlik', rankingTitle: 'Aylık Etkinliği En Yüksek 5 İl', value: city => city.monthlyAverageEvents || 0,
@@ -34,6 +34,8 @@ const normalizeCityKey = value => String(value || '')
   .normalize('NFD')
   .replace(/\p{Diacritic}/gu, '');
 
+const EDUCATION_PERIOD_SEEN_KEY = 'gonullu360.education-period-seen';
+
 export default function VolunteerMapView() {
   const [data, setData] = useState(null);
   const [isRestoringStoredCity, setIsRestoringStoredCity] = useState(() => (
@@ -48,6 +50,7 @@ export default function VolunteerMapView() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const [syncMessageType, setSyncMessageType] = useState('');
+  const [periodUpdateNotice, setPeriodUpdateNotice] = useState('');
   const [mapMetric, setMapMetric] = useState('volunteers');
   const [citySearch, setCitySearch] = useState('');
   const [compareLeft, setCompareLeft] = useState('İstanbul');
@@ -72,6 +75,17 @@ export default function VolunteerMapView() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const period = data?.educationInstitutionPeriod;
+    if (!period || data.educationSyncStatus !== 'success') return undefined;
+    if (localStorage.getItem(EDUCATION_PERIOD_SEEN_KEY) === period) return undefined;
+
+    localStorage.setItem(EDUCATION_PERIOD_SEEN_KEY, period);
+    setPeriodUpdateNotice(`Eğitim istatistikleri ${period} verilerine güncellendi.`);
+    const timer = window.setTimeout(() => setPeriodUpdateNotice(''), 8000);
+    return () => window.clearTimeout(timer);
+  }, [data?.educationInstitutionPeriod, data?.educationSyncStatus]);
 
   useEffect(() => {
     if (!data || focusedCity) return;
@@ -317,6 +331,13 @@ export default function VolunteerMapView() {
 
   return (
     <section className={`volunteer-map-view${isRestoringStoredCity ? ' is-restoring-stored-city' : ''}`}>
+      {periodUpdateNotice && (
+        <div className="education-period-notice" role="status">
+          <span aria-hidden="true">✓</span>
+          <strong>{periodUpdateNotice}</strong>
+          <button type="button" onClick={() => setPeriodUpdateNotice('')} aria-label="Bildirimi kapat">×</button>
+        </div>
+      )}
       <div className={`education-sync-card ${data.educationSyncStatus || 'not_started'}`}>
         <div>
           <strong>Eğitim verileri</strong>
@@ -425,7 +446,7 @@ export default function VolunteerMapView() {
               {cityStats ? (
                 <>
                   <div className="city-stat-primary">
-                    <article title={`Kaynak: MEB · Son dönem: ${data.educationInstitutionPeriod}`}><small>İldeki Öğrenci Sayısı ⓘ</small><strong>{cityStats.studentCount.toLocaleString('tr-TR')}</strong><span>MEB resmî verisi</span></article>
+                    <article title={`MEB: ${(cityStats.mebStudentCount || 0).toLocaleString('tr-TR')} · YÖK: ${(cityStats.higherEducationStudentCount || 0).toLocaleString('tr-TR')} · Dönem: ${data.educationInstitutionPeriod}`}><small>İldeki Toplam Öğrenci Sayısı ⓘ</small><strong>{cityStats.studentCount.toLocaleString('tr-TR')}</strong><span>MEB + YÖK resmî verileri</span></article>
                     <article><small>Mevcut Gönüllü Sayısı</small><strong>{cityStats.volunteerCount.toLocaleString('tr-TR')}</strong><span>Güncel kayıt</span></article>
                     <article><small>Aylık Ortalama Etkinlik</small><strong>{cityStats.monthlyAverageEvents.toLocaleString('tr-TR')}</strong><span>Katılım verilerine göre</span></article>
                   </div>

@@ -132,7 +132,7 @@ test('OpenAPI belgesi yönetici API gruplarını içerir', async () => {
   for (const path of [
     '/auth/forgot-password', '/auth/reset-password', '/volunteers',
     '/volunteers/map', '/volunteers/map/sync', '/applications', '/account/profile', '/account/users',
-    '/events', '/events/poster', '/events/{id}', '/notifications', '/forms', '/forms/{id}/submissions',
+    '/events', '/events/poster', '/events/{id}', '/notifications', '/forms', '/forms/analytics', '/forms/{id}/submissions',
   ]) {
     assert.ok(document.paths[path], `${path} OpenAPI belgesinde bulunmalıdır`);
   }
@@ -144,6 +144,9 @@ test('gönüllü haritası cevabı 81 il ve senkronizasyon durumuyla döner', as
   assert.equal(response.status, 200);
   assert.equal(body.cities.length, 81);
   assert.ok(body.cities.every(city => Number.isInteger(city.studentCount) && city.studentCount >= 0));
+  assert.ok(body.cities.every(city => Number.isInteger(city.mebStudentCount) && city.mebStudentCount >= 0));
+  assert.ok(body.cities.every(city => Number.isInteger(city.higherEducationStudentCount) && city.higherEducationStudentCount >= 0));
+  assert.ok(body.cities.every(city => city.studentCount === city.mebStudentCount + city.higherEducationStudentCount));
   assert.match(body.educationInstitutionPeriod, /^\d{4}-\d{4}$/);
   assert.ok(['success', 'running', 'failed', 'not_started'].includes(body.educationSyncStatus));
 });
@@ -275,6 +278,16 @@ test('form taslağı oluşturulur, yayınlanır ve cevap kabul eder', { skip: !h
   assert.equal(submissions.pagination.total, 1);
   assert.equal(submissions.pagination.page, 1);
   assert.equal(submissions.pagination.limit, 20);
+
+  const analyticsResponse = await fetch(`${baseUrl}/forms/analytics`, { headers });
+  const analytics = await analyticsResponse.json();
+  assert.equal(analyticsResponse.status, 200);
+  assert.equal(typeof analytics.summary.totalForms, 'number');
+  assert.equal(typeof analytics.summary.totalSubmissions, 'number');
+  assert.equal(typeof analytics.summary.submissionsLast30Days, 'number');
+  assert.equal(analytics.submissionsByMonth.length, 12);
+  assert.ok(analytics.formsPerformance.some(form => form.id === created.id && form.submissionCount === 1));
+  assert.ok(analytics.fieldTypes.some(field => field.type === 'full_name' && field.count >= 1));
 
   const deleteResponse = await fetch(`${baseUrl}/forms/${created.id}`, { method: 'DELETE', headers });
   assert.equal(deleteResponse.status, 200);

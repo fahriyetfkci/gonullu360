@@ -3,6 +3,7 @@ import { deleteForm, downloadSubmissionFile, getForms, getFormSubmissions } from
 import { FormRenderer } from "./components/FormRenderer";
 import { createEmptyForm } from "./model/form.schema";
 import { FormBuilderPage } from "./FormBuilderPage";
+import FormAnalysisView from "./FormAnalysisView";
 import { clearSelectedForm, loadDraft, loadPublishedForm, selectFormForEditing, startNewDraft } from "./services/draftStorage";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -12,7 +13,7 @@ const FORM_VIEW_KEY = "gonullu360.form-builder.active-view";
 const FORM_SCOPE_KEY = "gonullu360.form-builder.management-scope";
 const FORM_RETURN_VIEW_KEY = "gonullu360.form-builder.return-view";
 const FORM_SELECTED_KEY = "gonullu360.form-builder.selected-form";
-const RESTORABLE_VIEWS = new Set(["tools", "builder", "manage", "preview", "published", "responses"]);
+const RESTORABLE_VIEWS = new Set(["tools", "builder", "manage", "analysis", "preview", "published", "responses"]);
 
 function readSessionValue(key, fallback) {
   try {
@@ -35,9 +36,6 @@ const toolCards = [
   { id: "builder", label: "Form Oluştur", icon: "grid" },
   { id: "manage", label: "Önceki Formlar", icon: "document" },
   { id: "analysis", label: "Form Analizi", icon: "chart" },
-  { id: "responses", label: "Yanıtlar", icon: "responses" },
-  { id: "publish", label: "Paylaş ve Yayınla", icon: "share" },
-  { id: "settings", label: "Ayarlar", icon: "settings" },
 ];
 
 function ToolIcon({ name }) {
@@ -45,9 +43,6 @@ function ToolIcon({ name }) {
     grid: <><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><rect x="14" y="14" width="6" height="6" /></>,
     document: <><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M10 12h6M10 16h6" /></>,
     chart: <><path d="M5 20V11M12 20V4M19 20v-7" /></>,
-    responses: <><rect x="6" y="4" width="14" height="14" rx="1" /><path d="M4 8H2v14h14v-2M10 9.5a3 3 0 1 1 4.6 2.5c-1.6.9-1.6 1.5-1.6 2.2M13 17.5h.01" /></>,
-    share: <><path d="M12 16V3M8 7l4-4 4 4" /><path d="M6 10H4v11h16V10h-2" /></>,
-    settings: <><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></>,
   };
 
   return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
@@ -184,16 +179,15 @@ export default function FormBuilderFeature() {
           <h1 id="form-tools-title">Form Araçları</h1>
           <div className="form-tools-grid">
             {toolCards.map((tool) => {
-              const isAvailable = tool.id === "builder" || tool.id === "manage";
               return (
                 <button
                   className="form-tool-card"
                   type="button"
                   key={tool.id}
-                  aria-disabled={!isAvailable}
                   onClick={() => {
                     if (tool.id === "builder") setView("builder");
                     if (tool.id === "manage") openManagement("published");
+                    if (tool.id === "analysis") setView("analysis");
                   }}
                 >
                   <ToolIcon name={tool.icon} />
@@ -205,6 +199,8 @@ export default function FormBuilderFeature() {
         </section>
       </main>
     );
+  } else if (view === "analysis") {
+    content = <FormAnalysisView onBack={backToTools} />;
   } else if (view === "preview" || view === "published") {
     const schema = view === "preview" ? previewSchema : published?.schema;
 

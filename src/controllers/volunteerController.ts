@@ -14,6 +14,8 @@ router.use(organizationContext);
 type StoredEducationStat = {
   city: string;
   studentCount: number;
+  mebStudentCount: number;
+  higherEducationStudentCount: number;
   universities: number;
   middleSchools: number;
   highSchools: number;
@@ -138,12 +140,19 @@ router.get('/map', async (req: OrganizationRequest, res) => {
   const availableEducationStats = storedEducationStats.length === 81
     ? Object.fromEntries(storedEducationStats.map(item => [item.city, {
       studentCount: item.studentCount,
+      mebStudentCount: item.mebStudentCount,
+      higherEducationStudentCount: item.higherEducationStudentCount,
       universities: item.universities,
       middleSchools: item.middleSchools,
       highSchools: item.highSchools,
       vocationalHighSchools: item.vocationalHighSchools,
     }]))
-    : Object.fromEntries(Object.entries(educationInstitutionStats).map(([city, values]) => [city, { ...values, studentCount: 0 }]));
+    : Object.fromEntries(Object.entries(educationInstitutionStats).map(([city, values]) => [city, {
+      ...values,
+      studentCount: 0,
+      mebStudentCount: 0,
+      higherEducationStudentCount: 0,
+    }]));
   const educationInstitutionPeriod = storedEducationStats[0]?.period ?? EDUCATION_INSTITUTION_PERIOD;
   const educationStatsSyncedAt = storedEducationStats.length ? storedEducationStats.reduce(
     (latest, item) => item.syncedAt > latest ? item.syncedAt : latest,
@@ -160,6 +169,8 @@ router.get('/map', async (req: OrganizationRequest, res) => {
       city,
       volunteerCount: group?._count._all ?? 0,
       studentCount: educationInstitutions.studentCount,
+      mebStudentCount: educationInstitutions.mebStudentCount,
+      higherEducationStudentCount: educationInstitutions.higherEducationStudentCount,
       monthlyAverageEvents: Number((eventCount / 12).toFixed(1)),
       educationInstitutions: {
         universities: educationInstitutions.universities,

@@ -30,7 +30,7 @@ const envSchema = z.object({
   ARGON2_PARALLELISM: z.coerce.number().int().positive().default(4),
   EMAIL_VERIFY_TOKEN_TTL: z.coerce.number().int().positive().default(86400),
   EDUCATION_SYNC_ENABLED: z.enum(['true', 'false']).default('true'),
-  EDUCATION_SYNC_INTERVAL_HOURS: z.coerce.number().int().positive().default(168),
+  EDUCATION_SYNC_INTERVAL_HOURS: z.coerce.number().int().positive().default(336),
 });
 
 const parsed = envSchema.safeParse(process.env);

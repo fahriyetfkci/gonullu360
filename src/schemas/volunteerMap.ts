@@ -11,6 +11,8 @@ export const volunteerMapCitySchema = z.object({
   city: z.string().min(1),
   volunteerCount: z.number().int().nonnegative(),
   studentCount: z.number().int().nonnegative(),
+  mebStudentCount: z.number().int().nonnegative(),
+  higherEducationStudentCount: z.number().int().nonnegative(),
   monthlyAverageEvents: z.number().nonnegative(),
   educationInstitutions: educationInstitutionCountsSchema,
 });

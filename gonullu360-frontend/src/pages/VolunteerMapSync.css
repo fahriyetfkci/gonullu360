@@ -30,6 +30,41 @@
 .education-sync-card .education-sync-message.error { color: #c0392b; }
 .education-sync-message { animation: education-sync-message-life 3s ease forwards; }
 
+.education-period-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 1050px;
+  box-sizing: border-box;
+  margin: 0 auto 14px;
+  padding: 12px 15px;
+  border: 1px solid #bce8dc;
+  border-radius: 11px;
+  background: #effbf7;
+  color: #08785d;
+  box-shadow: 0 5px 18px rgba(8, 180, 133, .08);
+}
+.education-period-notice > span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  background: #08b485;
+  color: #fff;
+  place-items: center;
+  font-weight: 800;
+}
+.education-period-notice strong { flex: 1; font-size: 13px; }
+.education-period-notice button {
+  border: 0;
+  background: transparent;
+  color: #08785d;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
 @keyframes education-sync-message-life {
   0%, 80% { opacity: 1; }
   100% { opacity: 0; }

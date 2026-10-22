@@ -7,7 +7,7 @@ Gönüllü 360; PostgreSQL tabanlı bir backend ve Vite ile çalışan React fro
 - Gönüllü ve başvuru listeleme, filtreleme, sıralama ve sayfalama
 - Türkiye haritası üzerinden il bazlı gönüllü ve eğitim verileri
 - Etkinlik oluşturma, düzenleme, gruplama, filtreleme, arşivleme ve poster yönetimi
-- Form oluşturma, taslak kaydetme, yayınlama, yanıt ve dosya toplama
+- Form oluşturma, önceki formları yönetme, yanıt ve dosya toplama, istatistiksel form analizi
 - Profil, bildirim tercihleri ve kullanıcı yönetimi ekranları
 - Excel şablonu indirme, dosya seçme ve istemci tarafında dosya doğrulama
 - Demo verilerini taşımak için güvenli snapshot içe aktarma mekanizması
@@ -72,12 +72,12 @@ SEED_USER_PASSWORD=guclu-bir-demo-parolasi
 TEST_MANAGER_EMAIL=enes@gonullu360.com
 TEST_MANAGER_PASSWORD=guclu-bir-demo-parolasi
 EDUCATION_SYNC_ENABLED=true
-EDUCATION_SYNC_INTERVAL_HOURS=168
+EDUCATION_SYNC_INTERVAL_HOURS=336
 ```
 
 Gerçek `.env` dosyasını GitHub'a göndermeyin.
 
-`EDUCATION_SYNC_ENABLED=true` olduğunda MEB ve YÖK eğitim istatistikleri backend açıldıktan sonra otomatik güncellenir. `168` saat haftada bir güncelleme anlamına gelir. Kaynak geçici olarak erişilemezse veritabanındaki son başarılı veriler korunur.
+`EDUCATION_SYNC_ENABLED=true` olduğunda MEB ve YÖK eğitim istatistikleri backend açıldıktan sonra ve ardından iki haftada bir otomatik kontrol edilir. `336` saat 14 günlük kontrol aralığı anlamına gelir. Senkronizasyon MEB'in resmî yayın listesindeki en yeni dönemi ve o yayına ait il bazlı Excel tablolarını otomatik keşfeder; YÖK'te aynı dönem hazır olduğunda 81 ilin verisi birlikte güncellenir. Böylece yeni öğretim yılı için dosya adresi veya dönem elle değiştirilmez. Haritadaki toplam öğrenci sayısı, aynı öğretim yılına ait MEB okul öncesi/ilkokul/ortaokul/lise öğrencileri ile YÖK birinci ve ikinci öğretim yükseköğretim öğrencilerinin toplamıdır. Şehirle güvenilir biçimde ilişkilendirilemeyen açık ve uzaktan öğretim kayıtları YÖK toplamına katılmaz. Kaynaklardan biri henüz yeni dönemi yayımlamadıysa veya geçici olarak erişilemiyorsa veritabanındaki son başarılı ortak dönem korunur. Harita yeni döneme geçtiğinde kullanıcıya ilgili dönem bildirimi aynı tarayıcıda yalnızca bir kez gösterilir.
 
 ## 4. Backend kurulumu
 
@@ -162,6 +162,17 @@ Veri Girişi sayfasından örnek Excel dosyası indirilebilir ve uygun uzantıda
 dosya seçilebilir. Mevcut sürüm dosyayı istemci tarafında seçip doğrular; Excel
 içeriğini backend'de işleyerek gönüllü kayıtlarına otomatik aktarma işlemi henüz
 uygulanmamıştır. Bu nedenle dosya seçilmesi veritabanında kayıt oluşturmaz.
+
+## Form araçları ve analizi
+
+`#forms` adresindeki Form Araçları ekranı üç ana giriş sunar: **Form Oluştur**,
+**Önceki Formlar** ve **Form Analizi**. Analiz ekranı sabit örnek değerler
+kullanmaz; `GET /api/forms/analytics` üzerinden organizasyona ait güncel verileri
+getirir. Özet kartlarında toplam/yayımlanmış/taslak form sayıları, toplam yanıt,
+son 30 gündeki yanıt ve yayımlanmış form başına ortalama yanıt gösterilir. Grafikler
+son 12 aylık yanıt eğilimini, formlarda kullanılan alan türlerinin dağılımını ve
+yanıt sayısına göre en aktif formları gösterir. İstatistikler yalnızca oturum açan
+yöneticinin organizasyonundaki form ve yanıtlardan hesaplanır.
 
 ## Etkinlik özeti
 

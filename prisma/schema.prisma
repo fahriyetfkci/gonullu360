@@ -382,21 +382,23 @@ model VolunteerEducation {
 }
 
 model EducationInstitutionStat {
-  id                    Int       @id @default(autoincrement())
-  city                  String    @unique
-  studentCount          Int       @default(0) @map("student_count")
-  universities          Int
-  middleSchools         Int       @map("middle_schools")
-  highSchools           Int       @map("high_schools")
-  vocationalHighSchools Int       @map("vocational_high_schools")
-  period                String
-  mebSource             String    @map("meb_source")
-  yokSource             String    @map("yok_source")
-  syncStatus            String    @default("success") @map("sync_status")
-  syncError             String?   @map("sync_error")
-  lastAttemptAt         DateTime? @map("last_attempt_at")
-  syncedAt              DateTime  @map("synced_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                          Int       @id @default(autoincrement())
+  city                        String    @unique
+  studentCount                Int       @default(0) @map("student_count")
+  mebStudentCount             Int       @default(0) @map("meb_student_count")
+  higherEducationStudentCount Int       @default(0) @map("higher_education_student_count")
+  universities                Int
+  middleSchools               Int       @map("middle_schools")
+  highSchools                 Int       @map("high_schools")
+  vocationalHighSchools       Int       @map("vocational_high_schools")
+  period                      String
+  mebSource                   String    @map("meb_source")
+  yokSource                   String    @map("yok_source")
+  syncStatus                  String    @default("success") @map("sync_status")
+  syncError                   String?   @map("sync_error")
+  lastAttemptAt               DateTime? @map("last_attempt_at")
+  syncedAt                    DateTime  @map("synced_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
 
   @@map("education_institution_stats")
 }

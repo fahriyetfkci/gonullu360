@@ -209,6 +209,7 @@ export const getForms = async (status = '') => {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
   return (await axios.get(`${API_URL}/forms${query}`)).data;
 };
+export const getFormAnalytics = async () => (await axios.get(`${API_URL}/forms/analytics`)).data;
 export const createForm = async (schema) => (await axios.post(`${API_URL}/forms`, { schema })).data;
 export const getForm = async (id) => (await axios.get(`${API_URL}/forms/${id}`)).data;
 export const saveFormDraft = async (id, schema, expectedRevision) => (await axios.put(`${API_URL}/forms/${id}`, { schema, expectedRevision })).data;

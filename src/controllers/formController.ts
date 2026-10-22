@@ -177,6 +177,78 @@ router.get('/', ...managerOnly, async (req: AuthRequest, res: Response) => {
   return res.json({ forms: items.map(({ _count, ...form }) => ({ ...form, schema: form.draftSchema, draftSchema: undefined, revision: form.draftRevision, submissionCount: _count.submissions })) });
 });
 
+router.get('/analytics', ...managerOnly, async (req: AuthRequest, res: Response) => {
+  const organizationId = req.user!.organizationId;
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  monthStart.setUTCMonth(monthStart.getUTCMonth() - 11);
+  const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
+
+  const [forms, recentSubmissionCount, monthlyRows] = await Promise.all([
+    prisma.form.findMany({
+      where: { organizationId },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        draftSchema: true,
+        createdAt: true,
+        publishedAt: true,
+        _count: { select: { submissions: true } },
+      },
+    }),
+    prisma.formSubmission.count({
+      where: { form: { organizationId }, submittedAt: { gte: thirtyDaysAgo } },
+    }),
+    prisma.$queryRaw<Array<{ month: Date; count: bigint }>>(Prisma.sql`
+      SELECT date_trunc('month', fs.submitted_at) AS month, COUNT(*)::bigint AS count
+      FROM form_submissions fs
+      INNER JOIN forms f ON f.id = fs.form_id
+      WHERE f.organization_id = ${organizationId} AND fs.submitted_at >= ${monthStart}
+      GROUP BY date_trunc('month', fs.submitted_at)
+      ORDER BY month ASC
+    `),
+  ]);
+
+  const totalSubmissions = forms.reduce((sum, form) => sum + form._count.submissions, 0);
+  const publishedForms = forms.filter(form => form.status === 'published').length;
+  const fieldTypes = new Map<string, number>();
+  for (const form of forms) {
+    const parsed = parseSchema(form.draftSchema);
+    if (!parsed.success) continue;
+    for (const field of parsed.data.sections.flatMap(section => section.fields)) {
+      fieldTypes.set(field.type, (fieldTypes.get(field.type) ?? 0) + 1);
+    }
+  }
+
+  const countByMonth = new Map(monthlyRows.map(row => [row.month.toISOString().slice(0, 7), Number(row.count)]));
+  const submissionsByMonth = Array.from({ length: 12 }, (_, offset) => {
+    const month = new Date(monthStart);
+    month.setUTCMonth(monthStart.getUTCMonth() + offset);
+    const period = month.toISOString().slice(0, 7);
+    return { period, count: countByMonth.get(period) ?? 0 };
+  });
+
+  return res.json({
+    summary: {
+      totalForms: forms.length,
+      publishedForms,
+      draftForms: forms.length - publishedForms,
+      totalSubmissions,
+      submissionsLast30Days: recentSubmissionCount,
+      averageResponsesPerPublishedForm: publishedForms ? Number((totalSubmissions / publishedForms).toFixed(1)) : 0,
+    },
+    submissionsByMonth,
+    formsPerformance: forms
+      .map(form => ({ id: form.id, title: form.title, status: form.status, submissionCount: form._count.submissions }))
+      .sort((left, right) => right.submissionCount - left.submissionCount || left.title.localeCompare(right.title, 'tr'))
+      .slice(0, 8),
+    fieldTypes: [...fieldTypes].map(([type, count]) => ({ type, count })).sort((left, right) => right.count - left.count),
+    generatedAt: new Date().toISOString(),
+  });
+});
+
 router.post('/', ...managerOnly, async (req: AuthRequest, res: Response) => {
   const parsed = parseSchema(req.body?.schema);
   if (!parsed.success) return res.status(422).json({ error: validationMessage(parsed.error) });

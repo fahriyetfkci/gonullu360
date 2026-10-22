@@ -28,7 +28,7 @@ type DemoSnapshot = {
   applications: SnapshotApplication[];
   events: SnapshotEvent[];
   notifications: Array<{ message: string; read: boolean; createdAt: string; user: { email: string } }>;
-  educationStats: Array<{ city: string; studentCount: number; universities: number; middleSchools: number; highSchools: number; vocationalHighSchools: number; period: string; mebSource: string; yokSource: string; syncStatus: string; syncError: string | null; lastAttemptAt: string | null; syncedAt: string }>;
+  educationStats: Array<{ city: string; studentCount: number; mebStudentCount?: number; higherEducationStudentCount?: number; universities: number; middleSchools: number; highSchools: number; vocationalHighSchools: number; period: string; mebSource: string; yokSource: string; syncStatus: string; syncError: string | null; lastAttemptAt: string | null; syncedAt: string }>;
   uploadedFiles: unknown[];
 };
 
@@ -167,7 +167,23 @@ async function main() {
   const users = await prisma.user.findMany({ where: { organizationId: organization.id }, select: { id: true, email: true } });
   const userByEmail = new Map(users.map(user => [user.email, user.id]));
   await prisma.notification.createMany({ data: snapshot.notifications.map(notification => ({ organizationId: organization.id, userId: userByEmail.get(notification.user.email) ?? manager.id, message: notification.message, read: notification.read, createdAt: asDate(notification.createdAt) })) });
-  await prisma.educationInstitutionStat.createMany({ data: snapshot.educationStats.map(item => ({ city: item.city, studentCount: item.studentCount, universities: item.universities, middleSchools: item.middleSchools, highSchools: item.highSchools, vocationalHighSchools: item.vocationalHighSchools, period: item.period, mebSource: item.mebSource, yokSource: item.yokSource, syncStatus: item.syncStatus, syncError: item.syncError, lastAttemptAt: asOptionalDate(item.lastAttemptAt), syncedAt: asDate(item.syncedAt) })) });
+  await prisma.educationInstitutionStat.createMany({ data: snapshot.educationStats.map(item => ({
+    city: item.city,
+    studentCount: item.studentCount,
+    mebStudentCount: item.mebStudentCount ?? item.studentCount,
+    higherEducationStudentCount: item.higherEducationStudentCount ?? 0,
+    universities: item.universities,
+    middleSchools: item.middleSchools,
+    highSchools: item.highSchools,
+    vocationalHighSchools: item.vocationalHighSchools,
+    period: item.period,
+    mebSource: item.mebSource,
+    yokSource: item.yokSource,
+    syncStatus: item.syncStatus,
+    syncError: item.syncError,
+    lastAttemptAt: asOptionalDate(item.lastAttemptAt),
+    syncedAt: asDate(item.syncedAt),
+  })) });
 
   console.log('Demo snapshot başarıyla içe aktarıldı.');
   console.log({ volunteers: snapshot.volunteers.length, applications: snapshot.applications.length, events: snapshot.events.length + upcomingDemoEvents.length + 1, participants: participantData.length + 73, notifications: snapshot.notifications.length, educationStats: snapshot.educationStats.length });
